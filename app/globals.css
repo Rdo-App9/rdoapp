@@ -1,84 +1,62 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
-
-/* ==========================================
-   DESIGN SYSTEM - MINIMALISMO PREMIUM iOS
-   Sistema de Gestão de Canteiro de Obras
-   ==========================================
-   
-   Paleta Monocromática com Alto Contraste (7:1 WCAG)
-   Otimizado para uso em ambiente externo com reflexo solar
-   Touch targets expandidos para uso com luvas (60-72px)
-*/
-
 :root {
-  /* Core Colors - Light Mode (fallback) */
+  /* Core Colors */
   --background: oklch(0.13 0 0);
   --foreground: oklch(0.98 0 0);
-  
+
   /* Card & Surfaces */
   --card: oklch(0.16 0 0);
   --card-foreground: oklch(0.98 0 0);
   --popover: oklch(0.18 0 0);
   --popover-foreground: oklch(0.98 0 0);
-  
-  /* Primary - Branco puro para máximo contraste */
-  --primary: oklch(1 0 0);
-  --primary-foreground: oklch(0.1 0 0);
-  
+
+  /* === PRIMARY - AZUL PROFISSIONAL === */
+  --primary: oklch(0.68 0.18 255);
+  --primary-foreground: oklch(0.98 0 0);
+
   /* Secondary */
   --secondary: oklch(0.22 0 0);
   --secondary-foreground: oklch(0.95 0 0);
-  
+
   /* Muted */
   --muted: oklch(0.2 0 0);
   --muted-foreground: oklch(0.65 0 0);
-  
+
   /* Accent */
-  --accent: oklch(0.25 0 0);
+  --accent: oklch(0.68 0.18 255);
   --accent-foreground: oklch(0.98 0 0);
-  
-  /* Destructive - Vermelho de emergência */
+
+  /* Status */
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(1 0 0);
-  
-  /* Success - Verde de confirmação */
   --success: oklch(0.65 0.18 145);
   --success-foreground: oklch(0.1 0 0);
-  
-  /* Warning - Amarelo de alerta */
   --warning: oklch(0.75 0.15 85);
   --warning-foreground: oklch(0.1 0 0);
-  
+
   /* Borders & Inputs */
   --border: oklch(0.28 0 0);
   --input: oklch(0.2 0 0);
-  --ring: oklch(0.5 0 0);
-  
-  /* Charts */
-  --chart-1: oklch(0.7 0 0);
-  --chart-2: oklch(0.55 0 0);
-  --chart-3: oklch(0.4 0 0);
-  --chart-4: oklch(0.85 0 0);
-  --chart-5: oklch(0.3 0 0);
-  
-  /* Radius - Squircle suave estilo Apple */
-  --radius: 1rem;
-  
+  --ring: oklch(0.68 0.18 255);
+
+  /* Radius */
+  --radius: 1rem; /* ← Adicionado (estava faltando) */
+
   /* Sidebar */
   --sidebar: oklch(0.11 0 0);
   --sidebar-foreground: oklch(0.98 0 0);
-  --sidebar-primary: oklch(1 0 0);
-  --sidebar-primary-foreground: oklch(0.1 0 0);
-  --sidebar-accent: oklch(0.18 0 0);
+  --sidebar-primary: oklch(0.68 0.18 255);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.22 0 0);
   --sidebar-accent-foreground: oklch(0.98 0 0);
   --sidebar-border: oklch(0.22 0 0);
-  --sidebar-ring: oklch(0.4 0 0);
+  --sidebar-ring: oklch(0.68 0.18 255);
 }
 
-/* Dark mode é o padrão para este app */
+/* Dark mode */
 .dark {
   --background: oklch(0.08 0 0);
   --foreground: oklch(0.98 0 0);
@@ -86,28 +64,33 @@
   --card-foreground: oklch(0.98 0 0);
   --popover: oklch(0.14 0 0);
   --popover-foreground: oklch(0.98 0 0);
-  --primary: oklch(1 0 0);
-  --primary-foreground: oklch(0.08 0 0);
+
+  --primary: oklch(0.68 0.18 255);
+  --primary-foreground: oklch(0.98 0 0);
+
   --secondary: oklch(0.18 0 0);
   --secondary-foreground: oklch(0.95 0 0);
   --muted: oklch(0.16 0 0);
   --muted-foreground: oklch(0.6 0 0);
-  --accent: oklch(0.2 0 0);
+  --accent: oklch(0.68 0.18 255);
   --accent-foreground: oklch(0.98 0 0);
+
   --destructive: oklch(0.55 0.22 25);
   --destructive-foreground: oklch(1 0 0);
   --border: oklch(0.22 0 0);
   --input: oklch(0.16 0 0);
-  --ring: oklch(0.45 0 0);
+  --ring: oklch(0.68 0.18 255);
+
   --sidebar: oklch(0.06 0 0);
   --sidebar-border: oklch(0.18 0 0);
 }
 
 @theme inline {
-  --font-sans: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-  
-  /* Color Mappings */
+  --font-sans:
+    "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Consolas", monospace;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -131,76 +114,50 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  
+
   /* Radius */
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 6px);
   --radius-2xl: calc(var(--radius) + 12px);
-  
-  /* Sidebar */
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  
+
   html {
     @apply bg-background;
-    /* Previne zoom em inputs no iOS */
     -webkit-text-size-adjust: 100%;
-    /* Scroll suave */
     scroll-behavior: smooth;
   }
-  
+
   body {
     @apply bg-background text-foreground antialiased;
-    /* Previne overscroll no mobile */
     overscroll-behavior: none;
-    /* Fonte base legível */
     font-size: 16px;
     line-height: 1.5;
-    /* Haptic feedback no iOS */
     -webkit-tap-highlight-color: transparent;
   }
-  
-  /* Tipografia otimizada para leitura externa */
+
   h1 {
     @apply text-3xl font-bold tracking-tight;
   }
-  
   h2 {
     @apply text-2xl font-semibold tracking-tight;
   }
-  
   h3 {
     @apply text-xl font-semibold;
   }
-  
   h4 {
     @apply text-lg font-medium;
   }
-  
   p {
     @apply text-base leading-relaxed;
   }
-  
-  /* Links */
+
   a {
     @apply text-primary underline-offset-4 hover:underline;
   }
@@ -211,218 +168,218 @@
      TOUCH TARGETS - Mínimo 60x60px
      Para uso com luvas de proteção
      ========================================== */
-  
+
   .touch-target {
     @apply min-h-[60px] min-w-[60px] flex items-center justify-center;
   }
-  
+
   .touch-target-lg {
     @apply min-h-[72px] min-w-[72px] flex items-center justify-center;
   }
-  
+
   /* ==========================================
      BOTÕES DE AÇÃO RÁPIDA
      ========================================== */
-  
+
   .action-button {
     @apply min-h-[72px] min-w-[72px] rounded-2xl bg-card border border-border
            flex flex-col items-center justify-center gap-2
            active:scale-95 transition-transform duration-150
            text-foreground font-medium;
   }
-  
+
   .action-button-primary {
     @apply min-h-[72px] min-w-[72px] rounded-2xl bg-primary border border-primary
            flex flex-col items-center justify-center gap-2
            active:scale-95 transition-transform duration-150
            text-primary-foreground font-medium;
   }
-  
+
   .action-button-destructive {
     @apply min-h-[72px] min-w-[72px] rounded-2xl bg-destructive border border-destructive
            flex flex-col items-center justify-center gap-2
            active:scale-95 transition-transform duration-150
            text-destructive-foreground font-medium;
   }
-  
+
   /* ==========================================
      CARDS ESTILO iOS
      Squircle com whitespace generoso
      ========================================== */
-  
+
   .ios-card {
     @apply bg-card rounded-2xl p-6 space-y-4;
   }
-  
+
   .ios-card-sm {
     @apply bg-card rounded-xl p-4 space-y-3;
   }
-  
+
   /* ==========================================
      INPUTS GRANDES
      Otimizados para digitação com luvas
      ========================================== */
-  
+
   .input-lg {
     @apply min-h-[56px] px-5 text-lg rounded-xl bg-input border border-border
            placeholder:text-muted-foreground focus:ring-2 focus:ring-ring
            w-full transition-colors;
   }
-  
+
   /* ==========================================
      STEPPER PARA QUANTIDADES
      ========================================== */
-  
+
   .stepper {
     @apply flex items-center gap-4;
   }
-  
+
   .stepper-button {
     @apply w-16 h-16 rounded-2xl bg-secondary text-secondary-foreground
            flex items-center justify-center text-2xl font-bold
            active:scale-95 transition-transform duration-150
            disabled:opacity-40 disabled:pointer-events-none;
   }
-  
+
   .stepper-value {
     @apply min-w-[80px] text-center text-3xl font-bold tabular-nums;
   }
-  
+
   /* ==========================================
      BOTTOM SHEET (Gaveta inferior)
      Substitui dropdowns
      ========================================== */
-  
+
   .bottom-sheet-overlay {
     @apply fixed inset-0 bg-black/60 backdrop-blur-sm z-50;
   }
-  
+
   .bottom-sheet {
     @apply fixed bottom-0 left-0 right-0 bg-card rounded-t-3xl z-50
            max-h-[85vh] overflow-y-auto;
     padding-bottom: env(safe-area-inset-bottom);
   }
-  
+
   .bottom-sheet-handle {
     @apply w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mt-3 mb-4;
   }
-  
+
   /* ==========================================
      STATUS BADGES
      ========================================== */
-  
+
   .status-badge {
     @apply inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium;
   }
-  
+
   .status-online {
     @apply inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-success/20 text-success;
   }
-  
+
   .status-offline {
     @apply inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-destructive/20 text-destructive;
   }
-  
+
   .status-syncing {
     @apply inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-warning/20 text-warning;
   }
-  
+
   /* ==========================================
      NAVIGATION BAR (Footer)
      ========================================== */
-  
+
   .nav-bar {
     @apply fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg
            border-t border-border z-40;
     padding-bottom: env(safe-area-inset-bottom);
   }
-  
+
   .nav-item {
     @apply flex flex-col items-center justify-center gap-1 py-3 px-4
            text-muted-foreground transition-colors min-h-[64px];
   }
-  
+
   .nav-item-active {
     @apply flex flex-col items-center justify-center gap-1 py-3 px-4
            text-primary transition-colors min-h-[64px];
   }
-  
+
   /* ==========================================
      SAFE AREAS (iOS)
      ========================================== */
-  
+
   .pt-safe {
     padding-top: env(safe-area-inset-top);
   }
-  
+
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
-  
+
   .px-safe {
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
-  
+
   /* ==========================================
      EMERGÊNCIA / PÂNICO
      ========================================== */
-  
+
   .panic-button {
     @apply w-full min-h-[100px] rounded-3xl bg-destructive text-destructive-foreground
            flex items-center justify-center gap-4 text-xl font-bold
            active:scale-98 transition-transform duration-100
            animate-pulse;
   }
-  
+
   /* ==========================================
      ASSINATURA CANVAS
      ========================================== */
-  
+
   .signature-canvas {
     @apply w-full h-[200px] bg-card rounded-2xl border-2 border-dashed border-border
            touch-none;
   }
-  
+
   /* ==========================================
      CAMERA OVERLAY
      ========================================== */
-  
+
   .camera-overlay {
     @apply fixed inset-0 bg-black z-50;
   }
-  
+
   .camera-controls {
     @apply fixed bottom-0 left-0 right-0 p-6 flex items-center justify-center gap-8;
     padding-bottom: calc(env(safe-area-inset-bottom) + 1.5rem);
   }
-  
+
   .camera-button {
     @apply w-20 h-20 rounded-full bg-primary border-4 border-primary-foreground/50
            active:scale-95 transition-transform;
   }
-  
+
   /* ==========================================
      QR SCANNER FRAME
      ========================================== */
-  
+
   .qr-frame {
     @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
            w-64 h-64 border-2 border-primary rounded-3xl;
   }
-  
+
   .qr-corner-tl {
     @apply absolute w-8 h-8 border-primary top-0 left-0 border-t-4 border-l-4 rounded-tl-2xl;
   }
-  
+
   .qr-corner-tr {
     @apply absolute w-8 h-8 border-primary top-0 right-0 border-t-4 border-r-4 rounded-tr-2xl;
   }
-  
+
   .qr-corner-bl {
     @apply absolute w-8 h-8 border-primary bottom-0 left-0 border-b-4 border-l-4 rounded-bl-2xl;
   }
-  
+
   .qr-corner-br {
     @apply absolute w-8 h-8 border-primary bottom-0 right-0 border-b-4 border-r-4 rounded-br-2xl;
   }
@@ -434,28 +391,28 @@
     -webkit-user-select: none;
     user-select: none;
   }
-  
+
   /* Scroll horizontal suave */
   .scroll-x {
     @apply overflow-x-auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
-  
+
   .scroll-x::-webkit-scrollbar {
     display: none;
   }
-  
+
   /* Animate scale on press */
   .active\:scale-98:active {
     transform: scale(0.98);
   }
-  
+
   /* Text balance para títulos */
   .text-balance {
     text-wrap: balance;
   }
-  
+
   /* Número tabular (mono width) */
   .tabular-nums {
     font-variant-numeric: tabular-nums;
