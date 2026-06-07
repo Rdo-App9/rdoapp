@@ -109,43 +109,38 @@ export default function DashboardPage() {
       {/* Main content - pb-24 garante que a bottom nav mobile não cubra conteúdo */}
       <main className="flex-1 px-6 pb-24 lg:pb-8 overflow-y-auto">
         {/* Ações Rápidas */}
-        <section className="mb-8">
-          <h2 className="text-lg font-semibold text-foreground mb-4">
+        <section className="mb-6">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
             Ações Rápidas
           </h2>
-          <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-            <ActionButton
-              icon="clipboard"
-              label="Novo RDO"
-              variant="primary"
-              size="lg"
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <button
               onClick={() => router.push("/rdo/new")}
-            />
+              className="flex items-center justify-center h-12 px-4 rounded-md border border-input bg-transparent text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground active:scale-[0.98] transition-all w-full"
+            >
+              Novo RDO
+            </button>
 
-            <div className="lg:hidden">
-              <ActionButton
-                icon="camera"
-                label="Câmera"
-                size="lg"
-                onClick={() => router.push("/camera")}
-              />
-            </div>
+            <button
+              onClick={() => router.push("/camera")}
+              className="lg:hidden flex items-center justify-center h-12 px-4 rounded-md border border-input bg-transparent text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground active:scale-[0.98] transition-all w-full"
+            >
+              Abrir Câmera
+            </button>
 
-            <ActionButton
-              icon="cube"
-              label="Plantas BIM"
-              size="lg"
+            <button
               onClick={() => router.push("/bim")}
-            />
+              className="flex items-center justify-center h-12 px-4 rounded-md border border-input bg-transparent text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground active:scale-[0.98] transition-all w-full"
+            >
+              Plantas BIM
+            </button>
 
-            <div className="lg:hidden">
-              <ActionButton
-                icon="qr-scan"
-                label="Scanner"
-                size="lg"
-                onClick={() => router.push("/camera?mode=scan")}
-              />
-            </div>
+            <button
+              onClick={() => router.push("/camera?mode=scan")}
+              className="lg:hidden flex items-center justify-center h-12 px-4 rounded-md border border-input bg-transparent text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground active:scale-[0.98] transition-all w-full"
+            >
+              Escanear QR
+            </button>
           </div>
         </section>
 
@@ -154,31 +149,21 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => setShowEmergencyConfirm(true)}
-            className={cn(
-              "w-full min-h-28 rounded-3xl bg-destructive hover:bg-destructive/90",
-              "text-destructive-foreground flex flex-col items-center justify-center gap-2",
-              "shadow-lg active:scale-[0.98] transition-all",
-            )}
+            className="flex items-center justify-center h-12 px-4 rounded-md border border-destructive/50 bg-transparent text-sm font-medium text-destructive hover:bg-destructive/10 active:scale-[0.98] transition-all w-full"
           >
-            <div className="flex items-center gap-3 text-xl font-bold">
-              <BoxIcon name="alarm-exclamation" size={32} />
-              EMERGÊNCIA
-            </div>
-            <span className="text-sm font-medium opacity-90 px-4 text-center">
-              Envia localização GPS para a segurança
-            </span>
+            Acionar Emergência
           </button>
         </section>
 
         {/* RDOs Recentes */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
               RDOs Recentes
             </h2>
             <button
               onClick={() => router.push("/rdo")}
-              className="text-primary hover:text-primary/80 text-sm font-medium transition-colors"
+              className="text-primary hover:underline text-sm font-medium transition-colors"
             >
               Ver todos
             </button>
@@ -193,15 +178,10 @@ export default function DashboardPage() {
                 key={rdo.number}
                 type="button"
                 onClick={() => router.push(`/rdo/${rdo.number}`)}
-                className={cn(
-                  "w-full p-4 rounded-xl bg-card border border-border hover:border-primary/40",
-                  "flex items-center justify-between active:scale-[0.98] transition-all shadow-sm",
-                )}
+                // Removido o hover (hover:bg-accent etc), mantido apenas o active (clique)
+                className="w-full p-4 rounded-md border border-border bg-transparent flex items-center justify-between transition-all active:bg-secondary/50 active:scale-[0.99]"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-secondary/50 flex items-center justify-center text-foreground">
-                    <span className="text-base font-bold">#{rdo.number}</span>
-                  </div>
                   <div className="text-left">
                     <p className="font-medium text-foreground">
                       RDO #{rdo.number}
@@ -211,10 +191,11 @@ export default function DashboardPage() {
                 </div>
                 <div
                   className={cn(
-                    "px-3 py-1 rounded-full text-xs font-semibold",
-                    rdo.status === "draft" && "bg-warning/15 text-warning",
-                    rdo.status === "signed" && "bg-primary/15 text-primary",
-                    rdo.status === "approved" && "bg-success/15 text-success",
+                    "px-3 py-1 rounded-full text-xs font-medium border",
+                    rdo.status === "draft" && "border-warning/50 text-warning",
+                    rdo.status === "signed" && "border-primary/50 text-primary",
+                    rdo.status === "approved" &&
+                      "border-success/50 text-success",
                   )}
                 >
                   {rdo.status === "draft" && "Rascunho"}
@@ -227,13 +208,14 @@ export default function DashboardPage() {
         </section>
 
         {/* Clima */}
-        <section className="p-4 rounded-2xl bg-card border border-border shadow-sm">
+        <section className="p-4 rounded-md border border-border bg-transparent">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-secondary/50 flex items-center justify-center">
-              <BoxIcon name="sun" size={26} className="text-warning" />
+            {/* Ícone de volta, com um fundo sutil padronizado */}
+            <div className="w-10 h-10 rounded-md bg-secondary/30 flex items-center justify-center flex-shrink-0">
+              <BoxIcon name="sun" size={24} className="text-warning" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-foreground">28°C - Ensolarado</p>
+              <p className="font-medium text-foreground">28°C - Ensolarado</p>
               <p className="text-sm text-muted-foreground">
                 Umidade 65% • Vento 12 km/h
               </p>
