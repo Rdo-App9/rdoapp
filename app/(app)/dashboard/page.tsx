@@ -211,7 +211,7 @@ export default function DashboardPage() {
         <section className="p-4 rounded-md border border-border bg-transparent">
           <div className="flex items-center gap-4">
             {/* Ícone de volta, com um fundo sutil padronizado */}
-            <div className="w-10 h-10 rounded-md bg-secondary/30 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-md bg-secondary/30 flex items-center justify-center shrink-0">
               <BoxIcon name="sun" size={24} className="text-warning" />
             </div>
             <div className="flex-1">

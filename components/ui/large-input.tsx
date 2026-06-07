@@ -34,29 +34,16 @@ export const LargeInput = forwardRef<HTMLInputElement, LargeInputProps>(
     const [isListening, setIsListening] = useState(false);
 
     const startVoiceInput = () => {
-      if (
-        !("webkitSpeechRecognition" in window) &&
-        !("SpeechRecognition" in window)
-      ) {
+      const SpeechRecognitionAPI =
+        (window as any).SpeechRecognition ||
+        (window as any).webkitSpeechRecognition;
+
+      if (!SpeechRecognitionAPI) {
         alert("Reconhecimento de voz não suportado neste navegador");
         return;
       }
 
-      const SpeechRecognition =
-        (
-          window as unknown as {
-            SpeechRecognition?: typeof window.SpeechRecognition;
-            webkitSpeechRecognition?: typeof window.SpeechRecognition;
-          }
-        ).SpeechRecognition ||
-        (
-          window as unknown as {
-            webkitSpeechRecognition?: typeof window.SpeechRecognition;
-          }
-        ).webkitSpeechRecognition;
-      if (!SpeechRecognition) return;
-
-      const recognition = new SpeechRecognition();
+      const recognition = new SpeechRecognitionAPI();
       recognition.lang = "pt-BR";
       recognition.continuous = false;
       recognition.interimResults = false;
@@ -67,9 +54,7 @@ export const LargeInput = forwardRef<HTMLInputElement, LargeInputProps>(
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
-        if (onVoiceResult) {
-          onVoiceResult(transcript);
-        }
+        onVoiceResult?.(transcript);
       };
 
       recognition.start();
@@ -135,7 +120,8 @@ export const LargeInput = forwardRef<HTMLInputElement, LargeInputProps>(
 
 LargeInput.displayName = "LargeInput";
 
-// Textarea grande com suporte a voz
+// ==================== TEXTAREA ====================
+
 interface LargeTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
@@ -159,10 +145,10 @@ export const LargeTextarea = forwardRef<
     ref,
   ) => {
     const [isListening, setIsListening] = useState(false);
-    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const setRefs = (element: HTMLTextAreaElement | null) => {
-      textareaRef.current = element;
+      textareaRef.current = element!;
       if (typeof ref === "function") {
         ref(element);
       } else if (ref) {
@@ -171,29 +157,16 @@ export const LargeTextarea = forwardRef<
     };
 
     const startVoiceInput = () => {
-      if (
-        !("webkitSpeechRecognition" in window) &&
-        !("SpeechRecognition" in window)
-      ) {
+      const SpeechRecognitionAPI =
+        (window as any).SpeechRecognition ||
+        (window as any).webkitSpeechRecognition;
+
+      if (!SpeechRecognitionAPI) {
         alert("Reconhecimento de voz não suportado neste navegador");
         return;
       }
 
-      const SpeechRecognition =
-        (
-          window as unknown as {
-            SpeechRecognition?: typeof window.SpeechRecognition;
-            webkitSpeechRecognition?: typeof window.SpeechRecognition;
-          }
-        ).SpeechRecognition ||
-        (
-          window as unknown as {
-            webkitSpeechRecognition?: typeof window.SpeechRecognition;
-          }
-        ).webkitSpeechRecognition;
-      if (!SpeechRecognition) return;
-
-      const recognition = new SpeechRecognition();
+      const recognition = new SpeechRecognitionAPI();
       recognition.lang = "pt-BR";
       recognition.continuous = false;
       recognition.interimResults = false;
@@ -204,9 +177,7 @@ export const LargeTextarea = forwardRef<
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
-        if (onVoiceResult) {
-          onVoiceResult(transcript);
-        }
+        onVoiceResult?.(transcript);
       };
 
       recognition.start();
@@ -240,7 +211,7 @@ export const LargeTextarea = forwardRef<
         <textarea
           ref={setRefs}
           className={cn(
-            "w-full min-h-[120px] px-5 py-4 text-lg rounded-xl resize-none",
+            "w-full min-h-30 px-5 py-4 text-lg rounded-xl resize-none",
             "bg-input border border-border text-foreground",
             "placeholder:text-muted-foreground",
             "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
