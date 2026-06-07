@@ -1,59 +1,79 @@
 // Input grande otimizado para canteiro de obras
 // Com suporte a entrada por voz (speech-to-text)
 
-'use client'
+"use client";
 
-import { forwardRef, useState, useRef } from 'react'
-import { cn } from '@/lib/utils'
-import { BoxIcon } from './box-icon'
+import { forwardRef, useState, useRef } from "react";
+import { cn } from "@/lib/utils";
+import { BoxIcon } from "./box-icon";
 
-interface LargeInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
-  label?: string
-  error?: string
-  icon?: React.ReactNode
-  showVoiceInput?: boolean
-  onVoiceResult?: (text: string) => void
+interface LargeInputProps extends Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "size"
+> {
+  label?: string;
+  error?: string;
+  icon?: React.ReactNode;
+  showVoiceInput?: boolean;
+  onVoiceResult?: (text: string) => void;
 }
 
 export const LargeInput = forwardRef<HTMLInputElement, LargeInputProps>(
-  ({ 
-    label, 
-    error, 
-    icon,
-    showVoiceInput = false,
-    onVoiceResult,
-    className, 
-    ...props 
-  }, ref) => {
-    const [isListening, setIsListening] = useState(false)
+  (
+    {
+      label,
+      error,
+      icon,
+      showVoiceInput = false,
+      onVoiceResult,
+      className,
+      ...props
+    },
+    ref,
+  ) => {
+    const [isListening, setIsListening] = useState(false);
 
     const startVoiceInput = () => {
-      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert('Reconhecimento de voz não suportado neste navegador')
-        return
+      if (
+        !("webkitSpeechRecognition" in window) &&
+        !("SpeechRecognition" in window)
+      ) {
+        alert("Reconhecimento de voz não suportado neste navegador");
+        return;
       }
 
-      const SpeechRecognition = (window as unknown as { SpeechRecognition?: typeof window.SpeechRecognition; webkitSpeechRecognition?: typeof window.SpeechRecognition }).SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: typeof window.SpeechRecognition }).webkitSpeechRecognition
-      if (!SpeechRecognition) return
+      const SpeechRecognition =
+        (
+          window as unknown as {
+            SpeechRecognition?: typeof window.SpeechRecognition;
+            webkitSpeechRecognition?: typeof window.SpeechRecognition;
+          }
+        ).SpeechRecognition ||
+        (
+          window as unknown as {
+            webkitSpeechRecognition?: typeof window.SpeechRecognition;
+          }
+        ).webkitSpeechRecognition;
+      if (!SpeechRecognition) return;
 
-      const recognition = new SpeechRecognition()
-      recognition.lang = 'pt-BR'
-      recognition.continuous = false
-      recognition.interimResults = false
+      const recognition = new SpeechRecognition();
+      recognition.lang = "pt-BR";
+      recognition.continuous = false;
+      recognition.interimResults = false;
 
-      recognition.onstart = () => setIsListening(true)
-      recognition.onend = () => setIsListening(false)
-      recognition.onerror = () => setIsListening(false)
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
+      recognition.onerror = () => setIsListening(false);
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = event.results[0][0].transcript
+        const transcript = event.results[0][0].transcript;
         if (onVoiceResult) {
-          onVoiceResult(transcript)
+          onVoiceResult(transcript);
         }
-      }
+      };
 
-      recognition.start()
-    }
+      recognition.start();
+    };
 
     return (
       <div className="space-y-2">
@@ -71,16 +91,16 @@ export const LargeInput = forwardRef<HTMLInputElement, LargeInputProps>(
           <input
             ref={ref}
             className={cn(
-              'w-full min-h-[56px] px-5 text-lg rounded-xl',
-              'bg-input border border-border text-foreground',
-              'placeholder:text-muted-foreground',
-              'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
-              'transition-colors duration-200',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
-              icon && 'pl-14',
-              showVoiceInput && 'pr-14',
-              error && 'border-destructive focus:ring-destructive',
-              className
+              "w-full min-h-14 px-5 text-lg rounded-xl",
+              "bg-input border border-border text-foreground",
+              "placeholder:text-muted-foreground",
+              "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
+              "transition-colors duration-200",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+              icon && "pl-14",
+              showVoiceInput && "pr-14",
+              error && "border-destructive focus:ring-destructive",
+              className,
             )}
             {...props}
           />
@@ -89,14 +109,14 @@ export const LargeInput = forwardRef<HTMLInputElement, LargeInputProps>(
               type="button"
               onClick={startVoiceInput}
               className={cn(
-                'absolute right-3 top-1/2 -translate-y-1/2',
-                'w-10 h-10 rounded-full flex items-center justify-center',
-                'transition-colors',
-                isListening 
-                  ? 'bg-destructive text-destructive-foreground animate-pulse' 
-                  : 'bg-primary text-primary-foreground'
+                "absolute right-3 top-1/2 -translate-y-1/2",
+                "w-10 h-10 rounded-full flex items-center justify-center",
+                "transition-colors",
+                isListening
+                  ? "bg-destructive text-destructive-foreground animate-pulse"
+                  : "bg-primary text-primary-foreground",
               )}
-              aria-label={isListening ? 'Ouvindo...' : 'Entrada por voz'}
+              aria-label={isListening ? "Ouvindo..." : "Entrada por voz"}
             >
               <BoxIcon name="microphone" size={20} />
             </button>
@@ -109,68 +129,88 @@ export const LargeInput = forwardRef<HTMLInputElement, LargeInputProps>(
           </p>
         )}
       </div>
-    )
-  }
-)
+    );
+  },
+);
 
-LargeInput.displayName = 'LargeInput'
+LargeInput.displayName = "LargeInput";
 
 // Textarea grande com suporte a voz
 interface LargeTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  label?: string
-  error?: string
-  showVoiceInput?: boolean
-  onVoiceResult?: (text: string) => void
+  label?: string;
+  error?: string;
+  showVoiceInput?: boolean;
+  onVoiceResult?: (text: string) => void;
 }
 
-export const LargeTextarea = forwardRef<HTMLTextAreaElement, LargeTextareaProps>(
-  ({ 
-    label, 
-    error, 
-    showVoiceInput = false,
-    onVoiceResult,
-    className, 
-    ...props 
-  }, ref) => {
-    const [isListening, setIsListening] = useState(false)
-    const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+export const LargeTextarea = forwardRef<
+  HTMLTextAreaElement,
+  LargeTextareaProps
+>(
+  (
+    {
+      label,
+      error,
+      showVoiceInput = false,
+      onVoiceResult,
+      className,
+      ...props
+    },
+    ref,
+  ) => {
+    const [isListening, setIsListening] = useState(false);
+    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
     const setRefs = (element: HTMLTextAreaElement | null) => {
-      textareaRef.current = element
-      if (typeof ref === 'function') {
-        ref(element)
+      textareaRef.current = element;
+      if (typeof ref === "function") {
+        ref(element);
       } else if (ref) {
-        ref.current = element
+        ref.current = element;
       }
-    }
+    };
 
     const startVoiceInput = () => {
-      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert('Reconhecimento de voz não suportado neste navegador')
-        return
+      if (
+        !("webkitSpeechRecognition" in window) &&
+        !("SpeechRecognition" in window)
+      ) {
+        alert("Reconhecimento de voz não suportado neste navegador");
+        return;
       }
 
-      const SpeechRecognition = (window as unknown as { SpeechRecognition?: typeof window.SpeechRecognition; webkitSpeechRecognition?: typeof window.SpeechRecognition }).SpeechRecognition || (window as unknown as { webkitSpeechRecognition?: typeof window.SpeechRecognition }).webkitSpeechRecognition
-      if (!SpeechRecognition) return
+      const SpeechRecognition =
+        (
+          window as unknown as {
+            SpeechRecognition?: typeof window.SpeechRecognition;
+            webkitSpeechRecognition?: typeof window.SpeechRecognition;
+          }
+        ).SpeechRecognition ||
+        (
+          window as unknown as {
+            webkitSpeechRecognition?: typeof window.SpeechRecognition;
+          }
+        ).webkitSpeechRecognition;
+      if (!SpeechRecognition) return;
 
-      const recognition = new SpeechRecognition()
-      recognition.lang = 'pt-BR'
-      recognition.continuous = false
-      recognition.interimResults = false
+      const recognition = new SpeechRecognition();
+      recognition.lang = "pt-BR";
+      recognition.continuous = false;
+      recognition.interimResults = false;
 
-      recognition.onstart = () => setIsListening(true)
-      recognition.onend = () => setIsListening(false)
-      recognition.onerror = () => setIsListening(false)
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
+      recognition.onerror = () => setIsListening(false);
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = event.results[0][0].transcript
+        const transcript = event.results[0][0].transcript;
         if (onVoiceResult) {
-          onVoiceResult(transcript)
+          onVoiceResult(transcript);
         }
-      }
+      };
 
-      recognition.start()
-    }
+      recognition.start();
+    };
 
     return (
       <div className="space-y-2">
@@ -184,15 +224,15 @@ export const LargeTextarea = forwardRef<HTMLTextAreaElement, LargeTextareaProps>
                 type="button"
                 onClick={startVoiceInput}
                 className={cn(
-                  'px-4 py-2 rounded-full flex items-center gap-2 text-sm font-medium',
-                  'transition-colors',
-                  isListening 
-                    ? 'bg-destructive text-destructive-foreground animate-pulse' 
-                    : 'bg-primary text-primary-foreground'
+                  "px-4 py-2 rounded-full flex items-center gap-2 text-sm font-medium",
+                  "transition-colors",
+                  isListening
+                    ? "bg-destructive text-destructive-foreground animate-pulse"
+                    : "bg-primary text-primary-foreground",
                 )}
               >
                 <BoxIcon name="microphone" size={18} />
-                {isListening ? 'Ouvindo...' : 'Ditar'}
+                {isListening ? "Ouvindo..." : "Ditar"}
               </button>
             )}
           </div>
@@ -200,14 +240,14 @@ export const LargeTextarea = forwardRef<HTMLTextAreaElement, LargeTextareaProps>
         <textarea
           ref={setRefs}
           className={cn(
-            'w-full min-h-[120px] px-5 py-4 text-lg rounded-xl resize-none',
-            'bg-input border border-border text-foreground',
-            'placeholder:text-muted-foreground',
-            'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
-            'transition-colors duration-200',
-            'disabled:opacity-50 disabled:cursor-not-allowed',
-            error && 'border-destructive focus:ring-destructive',
-            className
+            "w-full min-h-[120px] px-5 py-4 text-lg rounded-xl resize-none",
+            "bg-input border border-border text-foreground",
+            "placeholder:text-muted-foreground",
+            "focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent",
+            "transition-colors duration-200",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            error && "border-destructive focus:ring-destructive",
+            className,
           )}
           {...props}
         />
@@ -218,8 +258,8 @@ export const LargeTextarea = forwardRef<HTMLTextAreaElement, LargeTextareaProps>
           </p>
         )}
       </div>
-    )
-  }
-)
+    );
+  },
+);
 
-LargeTextarea.displayName = 'LargeTextarea'
+LargeTextarea.displayName = "LargeTextarea";

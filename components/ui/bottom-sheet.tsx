@@ -141,7 +141,7 @@ export function BottomSheetOption({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "w-full min-h-[64px] px-4 py-4 rounded-2xl",
+        "w-full min-h-16 px-4 py-4 rounded-2xl",
         "flex items-center gap-4 text-left",
         "transition-colors duration-150",
         "disabled:opacity-50 disabled:pointer-events-none",

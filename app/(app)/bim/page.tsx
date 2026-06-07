@@ -404,7 +404,7 @@ export default function BIMPage() {
                           markAsCompleted(element);
                         }}
                         className={cn(
-                          "mt-4 w-full min-h-[48px] rounded-xl",
+                          "mt-4 w-full min-h-12 rounded-xl",
                           "bg-success/20 text-success",
                           "font-medium flex items-center justify-center gap-2",
                           "active:scale-98 transition-transform",
@@ -599,7 +599,7 @@ export default function BIMPage() {
                 setFilterStatus("all");
               }}
               className={cn(
-                "w-full min-h-[56px] rounded-xl",
+                "w-full min-h-14 rounded-xl",
                 "bg-secondary text-secondary-foreground",
                 "font-medium",
                 "active:scale-98 transition-transform",
@@ -706,7 +706,7 @@ export default function BIMPage() {
                   type="button"
                   onClick={() => setShowStatusSheet(true)}
                   className={cn(
-                    "w-full min-h-[56px] rounded-xl",
+                    "w-full min-h-14 rounded-xl",
                     "bg-primary text-primary-foreground",
                     "font-medium flex items-center justify-center gap-2",
                     "active:scale-98 transition-transform",
@@ -724,7 +724,7 @@ export default function BIMPage() {
                       setSelectedElement(null);
                     }}
                     className={cn(
-                      "w-full min-h-[56px] rounded-xl",
+                      "w-full min-h-14 rounded-xl",
                       "bg-success text-success-foreground",
                       "font-medium flex items-center justify-center gap-2",
                       "active:scale-98 transition-transform",

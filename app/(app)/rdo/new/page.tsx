@@ -306,7 +306,7 @@ export default function NewRDOPage() {
                           }),
                         );
                       }}
-                      className="w-full min-h-[56px] rounded-xl bg-secondary text-secondary-foreground font-medium flex items-center justify-center gap-2"
+                      className="w-full min-h-14 rounded-xl bg-secondary text-secondary-foreground font-medium flex items-center justify-center gap-2"
                     >
                       <BoxIcon name="refresh" size={20} />
                       Atualizar localização
@@ -619,7 +619,7 @@ export default function NewRDOPage() {
                 type="button"
                 onClick={() => setCurrentStep((prev) => prev - 1)}
                 className={cn(
-                  "flex-1 min-h-[56px] rounded-xl",
+                  "flex-1 min-h-14 rounded-xl",
                   "bg-secondary text-secondary-foreground",
                   "font-semibold flex items-center justify-center gap-2",
                   "active:scale-98 transition-transform",
@@ -636,7 +636,7 @@ export default function NewRDOPage() {
                 onClick={() => setCurrentStep((prev) => prev + 1)}
                 disabled={!canProceed()}
                 className={cn(
-                  "flex-1 min-h-[56px] rounded-xl",
+                  "flex-1 min-h-14 rounded-xl",
                   "bg-primary text-primary-foreground",
                   "font-semibold flex items-center justify-center gap-2",
                   "active:scale-98 transition-transform",
@@ -652,7 +652,7 @@ export default function NewRDOPage() {
                 onClick={() => handleSave(false)}
                 disabled={!signature || isSaving}
                 className={cn(
-                  "flex-1 min-h-[56px] rounded-xl",
+                  "flex-1 min-h-14 rounded-xl",
                   "bg-success text-success-foreground",
                   "font-semibold flex items-center justify-center gap-2",
                   "active:scale-98 transition-transform",
@@ -662,9 +662,9 @@ export default function NewRDOPage() {
                 {isSaving ? (
                   <>
                     <BoxIcon
-                      name="loader-circle"
                       size={20}
                       className="animate-spin"
+                      name={"map-pin"}
                     />
                     Salvando...
                   </>
