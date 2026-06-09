@@ -217,7 +217,7 @@ export default function DashboardPage() {
             <div className="flex-1">
               <p className="font-medium text-foreground">28°C - Ensolarado</p>
               <p className="text-sm text-muted-foreground">
-                Umidade 65% • Vento 12 km/h
+                Umidade 80% • Vento 12 km/h
               </p>
             </div>
           </div>
