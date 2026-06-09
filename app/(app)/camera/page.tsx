@@ -33,11 +33,11 @@ interface CapturedPhoto {
 const categoryOptions: {
   value: PhotoCategory;
   label: string;
-  icon: "image" | "error" | "shield" | "layer" | "wrench" | "images";
+  icon: "image" | "error" | "shield-check" | "layer" | "wrench" | "images";
 }[] = [
   { value: "progress", label: "Progresso", icon: "image" },
   { value: "issue", label: "Problema", icon: "error" },
-  { value: "safety", label: "Segurança", icon: "shield" },
+  { value: "safety", label: "Segurança", icon: "shield-check" },
   { value: "material", label: "Material", icon: "layer" },
   { value: "equipment", label: "Equipamento", icon: "wrench" },
   { value: "general", label: "Geral", icon: "images" },
@@ -66,6 +66,11 @@ function CameraContent() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const markupCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Estado de Bloqueio de Dispositivo
+  const [isDeviceSupported, setIsDeviceSupported] = useState<boolean | null>(
+    null,
+  );
 
   const [mode, setMode] = useState<CameraMode>(initialMode);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -96,7 +101,23 @@ function CameraContent() {
   );
   const [markupColor, setMarkupColor] = useState("#ff0000");
 
+  // ==================== VALIDAÇÃO DE DISPOSITIVO ====================
+  useEffect(() => {
+    // Verifica se é mobile ou tablet baseado no User Agent ou na capacidade de toque (iPadOS)
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isMobileAgent =
+      /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+        userAgent,
+      );
+    const isIPadOS =
+      navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+
+    setIsDeviceSupported(isMobileAgent || isIPadOS);
+  }, []);
+
   const startCamera = useCallback(async () => {
+    if (!isDeviceSupported) return;
+
     try {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
@@ -120,10 +141,12 @@ function CameraContent() {
     } catch (error) {
       console.error("[Camera error]:", error);
     }
-  }, []);
+  }, [isDeviceSupported]);
 
   // GPS e Bússola
   useEffect(() => {
+    if (!isDeviceSupported) return;
+
     if ("geolocation" in navigator) {
       const watchId = navigator.geolocation.watchPosition(
         (pos) =>
@@ -133,28 +156,34 @@ function CameraContent() {
       );
       return () => navigator.geolocation.clearWatch(watchId);
     }
-  }, []);
+  }, [isDeviceSupported]);
 
   useEffect(() => {
+    if (!isDeviceSupported) return;
+
     const handleOrientation = (e: DeviceOrientationEvent) => {
       if (e.alpha !== null) setCompass(Math.round(e.alpha));
     };
     window.addEventListener("deviceorientation", handleOrientation);
     return () =>
       window.removeEventListener("deviceorientation", handleOrientation);
-  }, []);
+  }, [isDeviceSupported]);
 
   useEffect(() => {
-    startCamera();
+    if (isDeviceSupported) {
+      startCamera();
+    }
     return () => {
       if (streamRef.current)
         streamRef.current.getTracks().forEach((track) => track.stop());
       if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current);
     };
-  }, [startCamera]);
+  }, [startCamera, isDeviceSupported]);
 
   // ==================== LÓGICA DO SCANNER ====================
   useEffect(() => {
+    if (!isDeviceSupported) return;
+
     const scanTick = () => {
       if (
         mode === "scan" &&
@@ -205,16 +234,12 @@ function CameraContent() {
     return () => {
       if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current);
     };
-  }, [mode, scannedResult]);
+  }, [mode, scannedResult, isDeviceSupported]);
 
   // AÇÃO APÓS LER O QR CODE
   const handleUseCode = async () => {
     setIsProcessingCode(true);
-    // Simular processamento (aqui gravaria no IndexedDB ou enviaria para o formulário do RDO)
     await new Promise((resolve) => setTimeout(resolve, 800));
-    console.log("[Scanner] Código guardado:", scannedResult);
-
-    // Retornar ao painel principal (ou para a página que chamou a câmera)
     router.push("/dashboard");
   };
 
@@ -336,329 +361,354 @@ function CameraContent() {
     setShowMarkup(false);
   };
 
+  // ==================== RENDERS ====================
+
   return (
     <BoxiconsProvider>
-      <div className="fixed inset-0 bg-black overflow-hidden flex flex-col">
-        {/* ==================== ESTILO DA ANIMAÇÃO DO SCANNER ==================== */}
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `
-          @keyframes scanLine {
-            0% { top: 0px; opacity: 0; }
-            15% { opacity: 1; }
-            85% { opacity: 1; }
-            100% { top: 250px; opacity: 0; }
-          }
-          .animate-scan-line {
-            animation: scanLine 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-          }
-        `,
-          }}
-        />
+      {/* 1. ESTADO DE VERIFICAÇÃO */}
+      {isDeviceSupported === null ? (
+        <div className="fixed inset-0 bg-black flex items-center justify-center text-white">
+          Iniciando câmera...
+        </div>
+      ) : /* 2. BLOQUEIO DE DESKTOP / PC */
+      isDeviceSupported === false ? (
+        <div className="fixed inset-0 bg-background flex flex-col items-center justify-center p-6 text-center z-50">
+          <div className="w-20 h-20 rounded-full bg-secondary/30 flex items-center justify-center mb-6">
+            <BoxIcon name="phone" size={40} className="text-muted-foreground" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground mb-3">
+            Dispositivo Incompatível
+          </h2>
+          <p className="text-sm text-muted-foreground mb-8 max-w-xs mx-auto leading-relaxed">
+            A funcionalidade de câmera e scanner foi otimizada exclusivamente
+            para o uso em campo através de smartphones ou tablets.
+          </p>
+          <button
+            onClick={() => router.back()}
+            className="h-12 px-8 rounded-md bg-primary text-primary-foreground text-sm font-bold flex items-center gap-2 active:scale-95 transition-transform"
+          >
+            <BoxIcon name="chevron-left" size={20} />
+            Voltar ao Painel
+          </button>
+        </div>
+      ) : (
+        /* 3. INTERFACE REAL DA CÂMERA (MOBILE/TABLET) */
+        <div className="fixed inset-0 bg-black overflow-hidden flex flex-col">
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
+            @keyframes scanLine {
+              0% { top: 0px; opacity: 0; }
+              15% { opacity: 1; }
+              85% { opacity: 1; }
+              100% { top: 250px; opacity: 0; }
+            }
+            .animate-scan-line {
+              animation: scanLine 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            }
+          `,
+            }}
+          />
 
-        {/* ==================== CÂMERA AO VIVO ==================== */}
-        {!capturedPhoto && (
-          <div className="relative flex-1">
-            <video
-              ref={videoRef}
-              className="absolute inset-0 w-full h-full object-cover"
-              playsInline
-              muted
-            />
+          {!capturedPhoto && (
+            <div className="relative flex-1">
+              <video
+                ref={videoRef}
+                className="absolute inset-0 w-full h-full object-cover"
+                playsInline
+                muted
+              />
 
-            {/* Overlay Scanner */}
-            {mode === "scan" && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="relative w-64 h-64 border-2 border-white/20 rounded-lg bg-black/10">
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-lg" />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-lg" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-lg" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-lg" />
+              {/* Overlay Scanner */}
+              {mode === "scan" && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <div className="relative w-64 h-64 border-2 border-white/20 rounded-lg bg-black/10">
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-lg" />
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-lg" />
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-lg" />
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-lg" />
 
-                  {/* Linha animada do scanner (funciona agora!) */}
-                  {!scannedResult && (
-                    <div className="absolute left-0 right-0 h-1 bg-primary shadow-[0_0_8px_var(--color-primary)] animate-scan-line" />
-                  )}
-                </div>
-
-                {scannedResult ? (
-                  <div className="mt-8 bg-black/80 border border-white/10 p-5 rounded-2xl text-center max-w-[85%] backdrop-blur-md shadow-2xl">
-                    <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center mx-auto mb-3">
-                      <BoxIcon
-                        name="check"
-                        size={28}
-                        className="text-success"
-                      />
-                    </div>
-                    <p className="text-white text-sm font-medium mb-4 break-all">
-                      {scannedResult}
-                    </p>
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setScannedResult(null)}
-                        className="flex-1 py-3 bg-white/10 rounded-xl text-white text-sm font-semibold hover:bg-white/20 transition-colors"
-                      >
-                        Ler Outro
-                      </button>
-                      <button
-                        onClick={handleUseCode}
-                        disabled={isProcessingCode}
-                        className="flex-1 py-3 bg-primary text-primary-foreground rounded-xl text-sm font-bold active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-70"
-                      >
-                        {isProcessingCode ? (
-                          <BoxIcon
-                            name={"loader" as any}
-                            className="animate-spin"
-                          />
-                        ) : (
-                          "Guardar"
-                        )}
-                      </button>
-                    </div>
+                    {!scannedResult && (
+                      <div className="absolute left-0 right-0 h-1 bg-primary shadow-[0_0_8px_var(--color-primary)] animate-scan-line" />
+                    )}
                   </div>
-                ) : (
-                  <p className="text-white text-center text-sm font-medium bg-black/60 px-5 py-2.5 rounded-full mt-8 backdrop-blur-md">
-                    Aponte para o QR Code
-                  </p>
-                )}
-              </div>
-            )}
 
-            {/* Info Superior (GPS/Sair) */}
-            <div className="absolute top-0 left-0 right-0 pt-safe px-4 py-4 bg-linear-to-b from-black/80 to-transparent z-10">
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => router.back()}
-                  className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center"
-                >
-                  <BoxIcon name="x" size={24} className="text-white" />
-                </button>
-                <div className="flex items-center gap-2 text-white text-xs font-medium bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full">
-                  {location ? (
-                    <>
-                      <BoxIcon name="map-pin" size={14} />
-                      <span>
-                        {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
-                      </span>
-                    </>
+                  {scannedResult ? (
+                    <div className="mt-8 bg-black/80 border border-white/10 p-5 rounded-2xl text-center max-w-[85%] backdrop-blur-md shadow-2xl">
+                      <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center mx-auto mb-3">
+                        <BoxIcon
+                          name="check"
+                          size={28}
+                          className="text-success"
+                        />
+                      </div>
+                      <p className="text-white text-sm font-medium mb-4 break-all">
+                        {scannedResult}
+                      </p>
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setScannedResult(null)}
+                          className="flex-1 py-3 bg-white/10 rounded-xl text-white text-sm font-semibold hover:bg-white/20 transition-colors"
+                        >
+                          Ler Outro
+                        </button>
+                        <button
+                          onClick={handleUseCode}
+                          disabled={isProcessingCode}
+                          className="flex-1 py-3 bg-primary text-primary-foreground rounded-xl text-sm font-bold active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-70"
+                        >
+                          {isProcessingCode ? (
+                            <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                          ) : (
+                            "Guardar"
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   ) : (
-                    <span>Buscando GPS...</span>
+                    <p className="text-white text-center text-sm font-medium bg-black/60 px-5 py-2.5 rounded-full mt-8 backdrop-blur-md">
+                      Aponte para o QR Code
+                    </p>
                   )}
-                </div>
-                <div className="w-10 h-10" />
-              </div>
-            </div>
-
-            {/* Abas Foto / Scanner */}
-            <div className="absolute top-20 left-1/2 -translate-x-1/2 z-10">
-              <div className="flex bg-black/50 backdrop-blur-md rounded-full p-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode("photo");
-                    setScannedResult(null);
-                  }}
-                  className={cn(
-                    "px-6 py-2 rounded-full text-sm font-semibold transition-all",
-                    mode === "photo" ? "bg-white text-black" : "text-white",
-                  )}
-                >
-                  Foto
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode("scan")}
-                  className={cn(
-                    "px-6 py-2 rounded-full text-sm font-semibold transition-all",
-                    mode === "scan" ? "bg-white text-black" : "text-white",
-                  )}
-                >
-                  Scanner
-                </button>
-              </div>
-            </div>
-
-            {/* Controles Inferiores da Câmera (Apenas para Foto) */}
-            <div className="absolute bottom-0 left-0 right-0 pb-safe pt-24 pb-8 bg-linear-to-t from-black via-black/80 to-transparent">
-              {mode === "photo" && (
-                <div className="flex items-center justify-around px-6 max-w-sm mx-auto">
-                  <button
-                    type="button"
-                    onClick={() => setShowCategorySheet(true)}
-                    className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all"
-                  >
-                    <BoxIcon
-                      name={
-                        ((categoryOptions.find(
-                          (c) => c.value === selectedCategory,
-                        )?.icon || "images") as any)
-                      }
-                      size={20}
-                      className="text-white"
-                    />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={capturePhoto}
-                    disabled={isCapturing}
-                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white border-4 border-white/50 flex items-center justify-center active:scale-95 transition-transform"
-                  >
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setFlashEnabled(!flashEnabled)}
-                    className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center active:scale-95 transition-all"
-                  >
-                    <BoxIcon
-                      name={(flashEnabled ? "sun" : "moon") as any}
-                      size={20}
-                      className="text-white"
-                    />
-                  </button>
                 </div>
               )}
-            </div>
 
-            <canvas ref={canvasRef} className="hidden" />
-          </div>
-        )}
-
-        {/* ==================== PRÉ-VISUALIZAÇÃO DA FOTO ==================== */}
-        {capturedPhoto && !showMarkup && (
-          <div className="absolute inset-0 bg-black flex flex-col z-20">
-            <div className="flex-1 flex items-center justify-center p-4">
-              <img
-                src={capturedPhoto.dataUrl}
-                alt="Preview"
-                className="max-w-full max-h-full object-contain rounded-lg"
-              />
-            </div>
-
-            <div className="px-4 py-4 pb-safe bg-black/90 border-t border-white/10">
-              <div className="flex justify-center mb-4">
-                <span className="px-4 py-1.5 bg-white/10 rounded-full text-white text-xs font-semibold uppercase tracking-wider">
-                  {
-                    categoryOptions.find((c) => c.value === selectedCategory)
-                      ?.label
-                  }
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setCapturedPhoto(null)}
-                  className="h-14 rounded-xl bg-white/10 text-white text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:bg-white/20 transition-all"
-                >
-                  <BoxIcon name="trash" size={20} />
-                  Descartar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowMarkup(true)}
-                  className="h-14 rounded-xl bg-white/10 text-white text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:bg-white/20 transition-all"
-                >
-                  <BoxIcon name="pencil" size={20} />
-                  Marcar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCapturedPhoto(null);
-                    router.push("/dashboard");
-                  }}
-                  className="h-14 rounded-xl bg-success text-success-foreground text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:scale-[0.98] transition-all"
-                >
-                  <BoxIcon name="check" size={20} />
-                  Guardar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ==================== EDITOR DE DESENHO (MARKUP) ==================== */}
-        {showMarkup && capturedPhoto && (
-          <div className="absolute inset-0 bg-black flex flex-col z-30">
-            <div className="pt-safe px-4 py-4 flex items-center justify-between bg-black/90">
-              <button
-                type="button"
-                onClick={() => setShowMarkup(false)}
-                className="px-3 py-1.5 rounded-md bg-white/10 text-white text-xs font-medium"
-              >
-                Cancelar
-              </button>
-              <div className="flex gap-3">
-                {["#ff0000", "#ffff00", "#00ff00", "#ffffff"].map((color) => (
+              {/* Info Superior (GPS/Sair) */}
+              <div className="absolute top-0 left-0 right-0 pt-safe px-4 py-4 bg-linear-to-b from-black/80 to-transparent z-10">
+                <div className="flex items-center justify-between">
                   <button
-                    key={color}
-                    onClick={() => setMarkupColor(color)}
-                    className={cn(
-                      "w-7 h-7 rounded-full border-2",
-                      markupColor === color
-                        ? "border-white"
-                        : "border-transparent",
+                    type="button"
+                    onClick={() => router.back()}
+                    className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center"
+                  >
+                    <BoxIcon name="x" size={24} className="text-white" />
+                  </button>
+                  <div className="flex items-center gap-2 text-white text-xs font-medium bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full">
+                    {location ? (
+                      <>
+                        <BoxIcon name="map-pin" size={14} />
+                        <span>
+                          {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
+                        </span>
+                      </>
+                    ) : (
+                      <span>Buscando GPS...</span>
                     )}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
+                  </div>
+                  <div className="w-10 h-10" />
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={saveMarkup}
-                className="px-3 py-1.5 rounded-md bg-success text-success-foreground text-xs font-medium"
-              >
-                Aplicar
-              </button>
-            </div>
-            <div className="flex-1 flex items-center justify-center p-4">
-              <canvas
-                ref={markupCanvasRef}
-                className="max-w-full max-h-full object-contain touch-none rounded-lg"
-                onTouchStart={startDrawing}
-                onTouchMove={draw}
-                onTouchEnd={stopDrawing}
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
-              />
-            </div>
-          </div>
-        )}
 
-        <BottomSheet
-          open={showCategorySheet}
-          onClose={() => setShowCategorySheet(false)}
-          title="Categoria da Foto"
-        >
-          <div className="grid grid-cols-2 gap-3 pb-6">
-            {categoryOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => {
-                  setSelectedCategory(option.value);
-                  setShowCategorySheet(false);
-                }}
-                className={cn(
-                  "p-4 rounded-xl flex flex-col items-center gap-2 border transition-all",
-                  selectedCategory === option.value
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-transparent text-foreground",
+              {/* Abas Foto / Scanner */}
+              <div className="absolute top-20 left-1/2 -translate-x-1/2 z-10">
+                <div className="flex bg-black/50 backdrop-blur-md rounded-full p-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("photo");
+                      setScannedResult(null);
+                    }}
+                    className={cn(
+                      "px-6 py-2 rounded-full text-sm font-semibold transition-all",
+                      mode === "photo" ? "bg-white text-black" : "text-white",
+                    )}
+                  >
+                    Foto
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode("scan")}
+                    className={cn(
+                      "px-6 py-2 rounded-full text-sm font-semibold transition-all",
+                      mode === "scan" ? "bg-white text-black" : "text-white",
+                    )}
+                  >
+                    Scanner
+                  </button>
+                </div>
+              </div>
+
+              {/* Controles Inferiores da Câmera (Apenas para Foto) */}
+              <div className="absolute bottom-0 left-0 right-0 pb-safe pt-24 pb-8 bg-linear-to-t from-black via-black/80 to-transparent">
+                {mode === "photo" && (
+                  <div className="flex items-center justify-around px-6 max-w-sm mx-auto">
+                    <button
+                      type="button"
+                      onClick={() => setShowCategorySheet(true)}
+                      className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all"
+                    >
+                      <BoxIcon
+                        name={
+                          categoryOptions.find(
+                            (c) => c.value === selectedCategory,
+                          )?.icon || "images"
+                        }
+                        size={20}
+                        className="text-white"
+                      />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={capturePhoto}
+                      disabled={isCapturing}
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white border-4 border-white/50 flex items-center justify-center active:scale-95 transition-transform"
+                    >
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFlashEnabled(!flashEnabled)}
+                      className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center active:scale-95 transition-all"
+                    >
+                      <BoxIcon
+                        name={(flashEnabled ? "sun" : "moon") as any}
+                        size={20}
+                        className="text-white"
+                      />
+                    </button>
+                  </div>
                 )}
-              >
-                <BoxIcon name={option.icon as any} size={28} />
-                <span className="text-sm font-medium">{option.label}</span>
-              </button>
-            ))}
-          </div>
-        </BottomSheet>
-      </div>
+              </div>
+
+              <canvas ref={canvasRef} className="hidden" />
+            </div>
+          )}
+
+          {/* ==================== PRÉ-VISUALIZAÇÃO DA FOTO ==================== */}
+          {capturedPhoto && !showMarkup && (
+            <div className="absolute inset-0 bg-black flex flex-col z-20">
+              <div className="flex-1 flex items-center justify-center p-4">
+                <img
+                  src={capturedPhoto.dataUrl}
+                  alt="Preview"
+                  className="max-w-full max-h-full object-contain rounded-lg"
+                />
+              </div>
+
+              <div className="px-4 py-4 pb-safe bg-black/90 border-t border-white/10">
+                <div className="flex justify-center mb-4">
+                  <span className="px-4 py-1.5 bg-white/10 rounded-full text-white text-xs font-semibold uppercase tracking-wider">
+                    {
+                      categoryOptions.find((c) => c.value === selectedCategory)
+                        ?.label
+                    }
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCapturedPhoto(null)}
+                    className="h-14 rounded-xl bg-white/10 text-white text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:bg-white/20 transition-all"
+                  >
+                    <BoxIcon name="trash" size={20} />
+                    Descartar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowMarkup(true)}
+                    className="h-14 rounded-xl bg-white/10 text-white text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:bg-white/20 transition-all"
+                  >
+                    <BoxIcon name="pencil" size={20} />
+                    Marcar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCapturedPhoto(null);
+                      router.push("/dashboard");
+                    }}
+                    className="h-14 rounded-xl bg-success text-success-foreground text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:scale-[0.98] transition-all"
+                  >
+                    <BoxIcon name="check" size={20} />
+                    Guardar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ==================== EDITOR DE DESENHO (MARKUP) ==================== */}
+          {showMarkup && capturedPhoto && (
+            <div className="absolute inset-0 bg-black flex flex-col z-30">
+              <div className="pt-safe px-4 py-4 flex items-center justify-between bg-black/90">
+                <button
+                  type="button"
+                  onClick={() => setShowMarkup(false)}
+                  className="px-3 py-1.5 rounded-md bg-white/10 text-white text-xs font-medium"
+                >
+                  Cancelar
+                </button>
+                <div className="flex gap-3">
+                  {["#ff0000", "#ffff00", "#00ff00", "#ffffff"].map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setMarkupColor(color)}
+                      className={cn(
+                        "w-7 h-7 rounded-full border-2",
+                        markupColor === color
+                          ? "border-white"
+                          : "border-transparent",
+                      )}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={saveMarkup}
+                  className="px-3 py-1.5 rounded-md bg-success text-success-foreground text-xs font-medium"
+                >
+                  Aplicar
+                </button>
+              </div>
+              <div className="flex-1 flex items-center justify-center p-4">
+                <canvas
+                  ref={markupCanvasRef}
+                  className="max-w-full max-h-full object-contain touch-none rounded-lg"
+                  onTouchStart={startDrawing}
+                  onTouchMove={draw}
+                  onTouchEnd={stopDrawing}
+                  onMouseDown={startDrawing}
+                  onMouseMove={draw}
+                  onMouseUp={stopDrawing}
+                  onMouseLeave={stopDrawing}
+                />
+              </div>
+            </div>
+          )}
+
+          <BottomSheet
+            open={showCategorySheet}
+            onClose={() => setShowCategorySheet(false)}
+            title="Categoria da Foto"
+          >
+            <div className="grid grid-cols-2 gap-3 pb-6">
+              {categoryOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => {
+                    setSelectedCategory(option.value);
+                    setShowCategorySheet(false);
+                  }}
+                  className={cn(
+                    "p-4 rounded-xl flex flex-col items-center gap-2 border transition-all",
+                    selectedCategory === option.value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-transparent text-foreground",
+                  )}
+                >
+                  <BoxIcon name={option.icon} size={28} />
+                  <span className="text-sm font-medium">{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </BottomSheet>
+        </div>
+      )}
     </BoxiconsProvider>
   );
 }
