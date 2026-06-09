@@ -1,5 +1,3 @@
-// Página de Câmera com marca d'água, markup e scanner QR
-
 "use client";
 
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
@@ -77,9 +75,7 @@ function CameraContent() {
   const [showCategorySheet, setShowCategorySheet] = useState(false);
   const [selectedCategory, setSelectedCategory] =
     useState<PhotoCategory>("general");
-  const [facingMode, setFacingMode] = useState<"user" | "environment">(
-    "environment",
-  );
+
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
     null,
   );
@@ -90,9 +86,8 @@ function CameraContent() {
     null,
   );
   const [markupColor, setMarkupColor] = useState("#ff0000");
-  const [scannedResult, setScannedResult] = useState<string | null>(null);
 
-  // Iniciar câmera
+  // Iniciar câmera (Fixo na traseira)
   const startCamera = useCallback(async () => {
     try {
       if (streamRef.current) {
@@ -101,7 +96,7 @@ function CameraContent() {
 
       const constraints: MediaStreamConstraints = {
         video: {
-          facingMode,
+          facingMode: "environment", // Fixo na câmera traseira
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
@@ -119,7 +114,7 @@ function CameraContent() {
       console.error("[v0] Camera error:", error);
       alert("Não foi possível acessar a câmera");
     }
-  }, [facingMode]);
+  }, []);
 
   // Obter localização
   useEffect(() => {
@@ -178,15 +173,6 @@ function CameraContent() {
       }
     };
   }, [startCamera]);
-
-  // Alternar câmera frontal/traseira
-  const toggleCamera = async () => {
-    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
-  };
-
-  useEffect(() => {
-    startCamera();
-  }, [facingMode, startCamera]);
 
   // Capturar foto
   const capturePhoto = () => {
@@ -362,7 +348,7 @@ function CameraContent() {
     // Aqui salvaria no IndexedDB e adicionaria à fila de sincronização
     console.log("[v0] Saving photo:", capturedPhoto);
 
-    // Voltar para a câmera
+    // Voltar para o dashboard
     setCapturedPhoto(null);
     router.push("/dashboard");
   };
@@ -432,13 +418,8 @@ function CameraContent() {
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={toggleCamera}
-                  className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center"
-                >
-                  <BoxIcon name="refresh" size={24} className="text-white" />
-                </button>
+                {/* Div vazia para manter o alinhamento flex-between equilibrado */}
+                <div className="w-12 h-12" />
               </div>
             </div>
 

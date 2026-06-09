@@ -34,9 +34,9 @@ export function StepEquipment({
         <button
           type="button"
           onClick={onOpenAddSheet}
-          className="flex items-center gap-2 px-3 h-8 rounded-md border border-input bg-transparent text-sm font-medium active:bg-secondary/50 transition-colors"
+          className="flex items-center gap-2 px-4 h-10 rounded-md border border-input bg-transparent text-sm font-medium active:bg-secondary/50 transition-colors"
         >
-          <BoxIcon name="plus" size={16} />
+          <BoxIcon name="plus" size={18} />
           Adicionar
         </button>
       </div>
@@ -47,20 +47,23 @@ export function StepEquipment({
           className="p-4 rounded-md border border-border bg-transparent relative"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-foreground pr-8">
+            <h3 className="text-sm font-medium text-foreground pr-10 leading-tight">
               {eq.name}
             </h3>
+            {/* Aumentamos o padding (p-2) para facilitar o clique no mobile */}
             <button
               onClick={() => onRemoveEquipment(eq.id)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-destructive p-1 transition-colors"
+              className="absolute top-2 right-2 text-muted-foreground hover:text-destructive active:bg-destructive/10 p-2 rounded-md transition-colors"
             >
-              <BoxIcon name="trash" size={18} />
+              <BoxIcon name="trash" size={20} />
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs text-muted-foreground mb-2 block uppercase tracking-wider">
-                Início
+
+          {/* A Mágica da Responsividade: grid-cols-1 no mobile, sm:grid-cols-2 em tablets/desktop */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-3 rounded-md bg-secondary/20">
+              <label className="text-xs font-semibold text-muted-foreground mb-2 block uppercase tracking-wider">
+                Horímetro Inicial
               </label>
               <Stepper
                 value={eq.horimeterStart}
@@ -72,9 +75,9 @@ export function StepEquipment({
                 step={1}
               />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-2 block uppercase tracking-wider">
-                Final
+            <div className="p-3 rounded-md bg-secondary/20">
+              <label className="text-xs font-semibold text-muted-foreground mb-2 block uppercase tracking-wider">
+                Horímetro Final
               </label>
               <Stepper
                 value={eq.horimeterEnd}
@@ -87,11 +90,15 @@ export function StepEquipment({
               />
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-border text-center">
-            <p className="text-xs text-muted-foreground">
-              Uso diário:{" "}
-              <span className="font-semibold text-foreground text-sm">
-                {eq.horimeterEnd - eq.horimeterStart}h
+
+          <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">
+              Uso Diário
+            </p>
+            <p className="font-semibold text-foreground text-sm">
+              {eq.horimeterEnd - eq.horimeterStart}{" "}
+              <span className="text-xs font-normal text-muted-foreground">
+                horas
               </span>
             </p>
           </div>
@@ -99,8 +106,15 @@ export function StepEquipment({
       ))}
 
       {equipment.length === 0 && (
-        <div className="p-6 rounded-md border border-dashed border-border bg-transparent text-center text-sm text-muted-foreground">
-          Nenhum equipamento registado hoje.
+        <div className="p-6 rounded-md border border-dashed border-border bg-transparent flex flex-col items-center justify-center gap-2">
+          <BoxIcon
+            name="wrench"
+            size={24}
+            className="text-muted-foreground opacity-50"
+          />
+          <p className="text-sm text-muted-foreground text-center">
+            Nenhum equipamento registado hoje.
+          </p>
         </div>
       )}
     </div>

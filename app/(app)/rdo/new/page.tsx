@@ -246,71 +246,72 @@ export default function NewRDOPage() {
       </header>
 
       {/* Área Principal (Rende os Sub-componentes) */}
-      <main className="flex-1 px-6 pt-6 pb-32 overflow-y-auto">
-        {currentStep === 0 && (
-          <StepIdentification
-            location={location}
-            onUpdateLocation={setLocation}
-          />
-        )}
+      <main className="flex-1 px-6 pt-6 pb-28 overflow-y-auto flex flex-col">
+        {/* O flex-1 aqui empurra os botões para o fundo se a tela for muito grande */}
+        <div className="flex-1">
+          {currentStep === 0 && (
+            <StepIdentification
+              location={location}
+              onUpdateLocation={setLocation}
+            />
+          )}
 
-        {currentStep === 1 && (
-          <StepWeather
-            weather={weather}
-            temperature={temperature}
-            humidity={humidity}
-            weatherOptions={weatherOptions}
-            onTemperatureChange={setTemperature}
-            onHumidityChange={setHumidity}
-            onOpenWeatherSheet={() => setShowWeatherSheet(true)}
-          />
-        )}
+          {currentStep === 1 && (
+            <StepWeather
+              weather={weather}
+              temperature={temperature}
+              humidity={humidity}
+              weatherOptions={weatherOptions}
+              onTemperatureChange={setTemperature}
+              onHumidityChange={setHumidity}
+              onOpenWeatherSheet={() => setShowWeatherSheet(true)}
+            />
+          )}
 
-        {currentStep === 2 && (
-          <StepWorkforce
-            workforce={workforce}
-            onUpdateQuantity={updateWorkforce}
-            onRemoveWorker={removeWorkforce}
-            onOpenAddSheet={() => setShowAddWorkerSheet(true)}
-          />
-        )}
+          {currentStep === 2 && (
+            <StepWorkforce
+              workforce={workforce}
+              onUpdateQuantity={updateWorkforce}
+              onRemoveWorker={removeWorkforce}
+              onOpenAddSheet={() => setShowAddWorkerSheet(true)}
+            />
+          )}
 
-        {currentStep === 3 && (
-          <StepEquipment
-            equipment={equipment}
-            onUpdateEquipment={updateEquipment}
-            onRemoveEquipment={removeEquipment}
-            onOpenAddSheet={() => setShowAddEquipmentSheet(true)}
-          />
-        )}
+          {currentStep === 3 && (
+            <StepEquipment
+              equipment={equipment}
+              onUpdateEquipment={updateEquipment}
+              onRemoveEquipment={removeEquipment}
+              onOpenAddSheet={() => setShowAddEquipmentSheet(true)}
+            />
+          )}
 
-        {currentStep === 4 && (
-          <StepActivities
-            activities={activities}
-            setActivities={setActivities}
-            observations={observations}
-            setObservations={setObservations}
-            issues={issues}
-            setIssues={setIssues}
-          />
-        )}
+          {currentStep === 4 && (
+            <StepActivities
+              activities={activities}
+              setActivities={setActivities}
+              observations={observations}
+              setObservations={setObservations}
+              issues={issues}
+              setIssues={setIssues}
+            />
+          )}
 
-        {currentStep === 5 && (
-          <StepSignature
-            weather={weather}
-            temperature={temperature}
-            workforce={workforce}
-            equipment={equipment}
-            weatherOptions={weatherOptions}
-            signature={signature}
-            setSignature={setSignature}
-          />
-        )}
-      </main>
+          {currentStep === 5 && (
+            <StepSignature
+              weather={weather}
+              temperature={temperature}
+              workforce={workforce}
+              equipment={equipment}
+              weatherOptions={weatherOptions}
+              signature={signature}
+              setSignature={setSignature}
+            />
+          )}
+        </div>
 
-      {/* Rodapé e Botões de Ação */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-6 py-4 pb-safe lg:absolute">
-        <div className="flex gap-3">
+        {/* Rodapé de Navegação do Formulário (Agora flui junto com a página) */}
+        <div className="mt-8 pt-6 border-t border-border flex gap-3">
           {currentStep > 0 && (
             <button
               type="button"
@@ -326,7 +327,7 @@ export default function NewRDOPage() {
               type="button"
               onClick={() => setCurrentStep((prev) => prev + 1)}
               disabled={!canProceed()}
-              className="flex-2 h-12 rounded-md bg-foreground text-background text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:pointer-events-none"
+              className="flex-[2] h-12 rounded-md bg-foreground text-background text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:pointer-events-none"
             >
               Avançar
             </button>
@@ -335,13 +336,13 @@ export default function NewRDOPage() {
               type="button"
               onClick={handleSave}
               disabled={!signature || isSaving}
-              className="flex-2 h-12 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:pointer-events-none"
+              className="flex-[2] h-12 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:pointer-events-none"
             >
               {isSaving ? "A guardar..." : "Finalizar RDO"}
             </button>
           )}
         </div>
-      </footer>
+      </main>
 
       {/* ================= Bottom Sheets (Painéis Móveis) ================= */}
       <BottomSheet
