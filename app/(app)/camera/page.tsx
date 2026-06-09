@@ -4,8 +4,8 @@ import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { BoxIcon, BoxiconsProvider } from "@/components/ui/box-icon";
-import { BottomSheet } from "@/components/ui/bottom-sheet";
-import jsQR from "jsqr"; // <--- Biblioteca que decodifica o QR
+import { BottomSheet, BottomSheetOption } from "@/components/ui/bottom-sheet";
+import jsQR from "jsqr";
 
 type CameraMode = "photo" | "scan";
 type PhotoCategory =
@@ -33,11 +33,11 @@ interface CapturedPhoto {
 const categoryOptions: {
   value: PhotoCategory;
   label: string;
-  icon: "image" | "error" | "shield-check" | "layer" | "wrench" | "images";
+  icon: "image" | "error" | "shield" | "layer" | "wrench" | "images";
 }[] = [
   { value: "progress", label: "Progresso", icon: "image" },
   { value: "issue", label: "Problema", icon: "error" },
-  { value: "safety", label: "Segurança", icon: "shield-check" },
+  { value: "safety", label: "Segurança", icon: "shield" },
   { value: "material", label: "Material", icon: "layer" },
   { value: "equipment", label: "Equipamento", icon: "wrench" },
   { value: "general", label: "Geral", icon: "images" },
@@ -82,10 +82,11 @@ function CameraContent() {
     null,
   );
   const [compass, setCompass] = useState<number | null>(null);
-  const [flashEnabled, setFlashEnabled] = useState(false); // Flash via WebRTC é limitado, mantido apenas o toggle visual
+  const [flashEnabled, setFlashEnabled] = useState(false);
 
   // Estados para o Scanner
   const [scannedResult, setScannedResult] = useState<string | null>(null);
+  const [isProcessingCode, setIsProcessingCode] = useState(false);
   const scanLoopRef = useRef<number | null>(null);
 
   // Estados de Desenho (Markup)
@@ -113,13 +114,11 @@ function CameraContent() {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        // Evita erro no Safari ao dar play
         videoRef.current.setAttribute("playsinline", "true");
         await videoRef.current.play();
       }
     } catch (error) {
       console.error("[Camera error]:", error);
-      alert("Não foi possível acessar a câmera. Verifique as permissões.");
     }
   }, []);
 
@@ -188,13 +187,12 @@ function CameraContent() {
 
             if (code) {
               setScannedResult(code.data);
-              if (navigator.vibrate) navigator.vibrate(200); // Feedback tátil ao ler
-              return; // Pausa o scanner se achar algo
+              if (navigator.vibrate) navigator.vibrate(200);
+              return;
             }
           }
         }
       }
-      // Continua o loop apenas se estiver no modo scan e não tiver achado nada
       if (mode === "scan" && !scannedResult) {
         scanLoopRef.current = requestAnimationFrame(scanTick);
       }
@@ -208,6 +206,17 @@ function CameraContent() {
       if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current);
     };
   }, [mode, scannedResult]);
+
+  // AÇÃO APÓS LER O QR CODE
+  const handleUseCode = async () => {
+    setIsProcessingCode(true);
+    // Simular processamento (aqui gravaria no IndexedDB ou enviaria para o formulário do RDO)
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    console.log("[Scanner] Código guardado:", scannedResult);
+
+    // Retornar ao painel principal (ou para a página que chamou a câmera)
+    router.push("/dashboard");
+  };
 
   // ==================== LÓGICA DA FOTO ====================
   const capturePhoto = () => {
@@ -330,6 +339,23 @@ function CameraContent() {
   return (
     <BoxiconsProvider>
       <div className="fixed inset-0 bg-black overflow-hidden flex flex-col">
+        {/* ==================== ESTILO DA ANIMAÇÃO DO SCANNER ==================== */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+          @keyframes scanLine {
+            0% { top: 0px; opacity: 0; }
+            15% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { top: 250px; opacity: 0; }
+          }
+          .animate-scan-line {
+            animation: scanLine 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+          }
+        `,
+          }}
+        />
+
         {/* ==================== CÂMERA AO VIVO ==================== */}
         {!capturedPhoto && (
           <div className="relative flex-1">
@@ -343,51 +369,64 @@ function CameraContent() {
             {/* Overlay Scanner */}
             {mode === "scan" && (
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="relative w-64 h-64 border-2 border-white/30 rounded-lg">
-                  <div className="qr-corner-tl absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-lg" />
-                  <div className="qr-corner-tr absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-lg" />
-                  <div className="qr-corner-bl absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-lg" />
-                  <div className="qr-corner-br absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-lg" />
+                <div className="relative w-64 h-64 border-2 border-white/20 rounded-lg bg-black/10">
+                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-lg" />
+                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-lg" />
+                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-lg" />
+                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-lg" />
 
-                  {/* Linha animada do scanner */}
+                  {/* Linha animada do scanner (funciona agora!) */}
                   {!scannedResult && (
-                    <div className="absolute left-0 right-0 h-0.5 bg-primary animate-[scan_2s_ease-in-out_infinite]" />
+                    <div className="absolute left-0 right-0 h-1 bg-primary shadow-[0_0_8px_var(--color-primary)] animate-scan-line" />
                   )}
                 </div>
 
                 {scannedResult ? (
-                  <div className="mt-8 bg-success/90 p-4 rounded-xl text-center max-w-[80%] backdrop-blur-sm">
-                    <p className="text-white text-sm font-medium mb-2 break-all">
+                  <div className="mt-8 bg-black/80 border border-white/10 p-5 rounded-2xl text-center max-w-[85%] backdrop-blur-md shadow-2xl">
+                    <div className="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center mx-auto mb-3">
+                      <BoxIcon
+                        name="check"
+                        size={28}
+                        className="text-success"
+                      />
+                    </div>
+                    <p className="text-white text-sm font-medium mb-4 break-all">
                       {scannedResult}
                     </p>
-                    <div className="flex gap-2">
+
+                    <div className="flex gap-3">
                       <button
                         onClick={() => setScannedResult(null)}
-                        className="flex-1 px-4 py-2 bg-black/30 rounded-lg text-white text-xs font-semibold"
+                        className="flex-1 py-3 bg-white/10 rounded-xl text-white text-sm font-semibold hover:bg-white/20 transition-colors"
                       >
-                        Ler outro
+                        Ler Outro
                       </button>
                       <button
-                        onClick={() => {
-                          alert("Vincular QR Code: " + scannedResult);
-                          setScannedResult(null);
-                        }}
-                        className="flex-1 px-4 py-2 bg-white text-black rounded-lg text-xs font-bold"
+                        onClick={handleUseCode}
+                        disabled={isProcessingCode}
+                        className="flex-1 py-3 bg-primary text-primary-foreground rounded-xl text-sm font-bold active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-70"
                       >
-                        Usar Código
+                        {isProcessingCode ? (
+                          <BoxIcon
+                            name={"loader" as any}
+                            className="animate-spin"
+                          />
+                        ) : (
+                          "Guardar"
+                        )}
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-white text-center text-sm bg-black/60 px-4 py-2 rounded-full mt-6 backdrop-blur-md">
-                    Centralize o QR Code
+                  <p className="text-white text-center text-sm font-medium bg-black/60 px-5 py-2.5 rounded-full mt-8 backdrop-blur-md">
+                    Aponte para o QR Code
                   </p>
                 )}
               </div>
             )}
 
             {/* Info Superior (GPS/Sair) */}
-            <div className="absolute top-0 left-0 right-0 pt-safe px-4 py-4 bg-linear-to-b from-black/80 to-transparent">
+            <div className="absolute top-0 left-0 right-0 pt-safe px-4 py-4 bg-linear-to-b from-black/80 to-transparent z-10">
               <div className="flex items-center justify-between">
                 <button
                   type="button"
@@ -408,7 +447,7 @@ function CameraContent() {
                     <span>Buscando GPS...</span>
                   )}
                 </div>
-                <div className="w-10 h-10" /> {/* Espaçador */}
+                <div className="w-10 h-10" />
               </div>
             </div>
 
@@ -422,7 +461,7 @@ function CameraContent() {
                     setScannedResult(null);
                   }}
                   className={cn(
-                    "px-5 py-1.5 rounded-full text-xs font-semibold transition-all",
+                    "px-6 py-2 rounded-full text-sm font-semibold transition-all",
                     mode === "photo" ? "bg-white text-black" : "text-white",
                   )}
                 >
@@ -432,7 +471,7 @@ function CameraContent() {
                   type="button"
                   onClick={() => setMode("scan")}
                   className={cn(
-                    "px-5 py-1.5 rounded-full text-xs font-semibold transition-all",
+                    "px-6 py-2 rounded-full text-sm font-semibold transition-all",
                     mode === "scan" ? "bg-white text-black" : "text-white",
                   )}
                 >
@@ -441,7 +480,7 @@ function CameraContent() {
               </div>
             </div>
 
-            {/* Controles Inferiores da Câmera */}
+            {/* Controles Inferiores da Câmera (Apenas para Foto) */}
             <div className="absolute bottom-0 left-0 right-0 pb-safe pt-24 pb-8 bg-linear-to-t from-black via-black/80 to-transparent">
               {mode === "photo" && (
                 <div className="flex items-center justify-around px-6 max-w-sm mx-auto">
@@ -452,9 +491,9 @@ function CameraContent() {
                   >
                     <BoxIcon
                       name={
-                        categoryOptions.find(
+                        ((categoryOptions.find(
                           (c) => c.value === selectedCategory,
-                        )?.icon || "images"
+                        )?.icon || "images") as any)
                       }
                       size={20}
                       className="text-white"
@@ -500,7 +539,7 @@ function CameraContent() {
               />
             </div>
 
-            <div className="px-4 py-4 pb-safe bg-black/90">
+            <div className="px-4 py-4 pb-safe bg-black/90 border-t border-white/10">
               <div className="flex justify-center mb-4">
                 <span className="px-4 py-1.5 bg-white/10 rounded-full text-white text-xs font-semibold uppercase tracking-wider">
                   {
@@ -510,22 +549,21 @@ function CameraContent() {
                 </span>
               </div>
 
-              {/* Botões ajustados para telas pequenas (Grid 3 colunas) */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
                   onClick={() => setCapturedPhoto(null)}
-                  className="h-12 rounded-lg bg-white/10 text-white text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:bg-white/20 transition-all"
+                  className="h-14 rounded-xl bg-white/10 text-white text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:bg-white/20 transition-all"
                 >
-                  <BoxIcon name="trash" size={18} />
+                  <BoxIcon name="trash" size={20} />
                   Descartar
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowMarkup(true)}
-                  className="h-12 rounded-lg bg-white/10 text-white text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:bg-white/20 transition-all"
+                  className="h-14 rounded-xl bg-white/10 text-white text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:bg-white/20 transition-all"
                 >
-                  <BoxIcon name="pencil" size={18} />
+                  <BoxIcon name="pencil" size={20} />
                   Marcar
                 </button>
                 <button
@@ -534,10 +572,10 @@ function CameraContent() {
                     setCapturedPhoto(null);
                     router.push("/dashboard");
                   }}
-                  className="h-12 rounded-lg bg-success text-success-foreground text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:scale-[0.98] transition-all"
+                  className="h-14 rounded-xl bg-success text-success-foreground text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:scale-[0.98] transition-all"
                 >
-                  <BoxIcon name="check" size={18} />
-                  Salvar
+                  <BoxIcon name="check" size={20} />
+                  Guardar
                 </button>
               </div>
             </div>
@@ -555,13 +593,13 @@ function CameraContent() {
               >
                 Cancelar
               </button>
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 {["#ff0000", "#ffff00", "#00ff00", "#ffffff"].map((color) => (
                   <button
                     key={color}
                     onClick={() => setMarkupColor(color)}
                     className={cn(
-                      "w-6 h-6 rounded-full border-2",
+                      "w-7 h-7 rounded-full border-2",
                       markupColor === color
                         ? "border-white"
                         : "border-transparent",
@@ -614,7 +652,7 @@ function CameraContent() {
                     : "border-border bg-transparent text-foreground",
                 )}
               >
-                <BoxIcon name={option.icon} size={28} />
+                <BoxIcon name={option.icon as any} size={28} />
                 <span className="text-sm font-medium">{option.label}</span>
               </button>
             ))}
