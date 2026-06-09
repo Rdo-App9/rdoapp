@@ -327,7 +327,7 @@ export default function NewRDOPage() {
               type="button"
               onClick={() => setCurrentStep((prev) => prev + 1)}
               disabled={!canProceed()}
-              className="flex-[2] h-12 rounded-md bg-foreground text-background text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:pointer-events-none"
+              className="flex-2 h-12 rounded-md bg-foreground text-background text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:pointer-events-none"
             >
               Avançar
             </button>
@@ -336,7 +336,7 @@ export default function NewRDOPage() {
               type="button"
               onClick={handleSave}
               disabled={!signature || isSaving}
-              className="flex-[2] h-12 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:pointer-events-none"
+              className="flex-2 h-12 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:pointer-events-none"
             >
               {isSaving ? "A guardar..." : "Finalizar RDO"}
             </button>
