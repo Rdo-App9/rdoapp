@@ -8,6 +8,7 @@ import {
   NetworkStatusBar,
 } from "@/components/ui/network-status";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
+import { ProjectSelectorSheet } from "@/components/dashboard/project-selector-sheet";
 
 // Importação dos ícones oficias
 import {
@@ -260,71 +261,14 @@ export default function DashboardClient({
         </section>
       </main>
 
-      {/* Botões Deslizantes (Sheets) */}
-      <BottomSheet
-        open={showProjectSheet}
+      <ProjectSelectorSheet
+        isOpen={showProjectSheet}
         onClose={() => setShowProjectSheet(false)}
-        title="Minhas Obras"
-      >
-        <div className="space-y-2 pb-6 px-4">
-          {hasRealProjects &&
-            projects.map((project) => (
-              <button
-                key={project.id}
-                onClick={() => {
-                  setSelectedProject(project);
-                  setShowProjectSheet(false);
-                }}
-                className={cn(
-                  "w-full flex items-center gap-4 p-4 rounded-xl border transition-all text-left",
-                  selectedProject.id === project.id
-                    ? "border-primary bg-primary/10"
-                    : "border-border bg-card",
-                )}
-              >
-                <div
-                  className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                    selectedProject.id === project.id
-                      ? "bg-primary/20 text-primary"
-                      : "bg-secondary text-muted-foreground",
-                  )}
-                >
-                  <Building
-                    pack={
-                      selectedProject.id === project.id ? "filled" : "basic"
-                    }
-                    width={24}
-                    height={24}
-                  />
-                </div>
-                <div>
-                  <p
-                    className={cn(
-                      "font-medium",
-                      selectedProject.id === project.id
-                        ? "text-primary"
-                        : "text-foreground",
-                    )}
-                  >
-                    {project.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {project.address || "Sem endereço"}
-                  </p>
-                </div>
-              </button>
-            ))}
-
-          <button
-            onClick={() => router.push("/projects/new")}
-            className="w-full flex items-center justify-center gap-2 p-4 mt-2 rounded-xl border border-dashed border-primary/50 text-primary hover:bg-primary/5 active:bg-primary/10 transition-colors font-medium"
-          >
-            <Plus pack="basic" width={20} height={20} />
-            Cadastrar Nova Obra
-          </button>
-        </div>
-      </BottomSheet>
+        projects={projects} // Passei o array de projetos
+        selectedProjectId={selectedProject.id}
+        onSelectProject={setSelectedProject}
+        onNewProject={() => router.push("/projects/new")}
+      />
 
       <BottomSheet
         open={showEmergencyConfirm}
