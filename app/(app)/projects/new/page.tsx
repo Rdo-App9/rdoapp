@@ -6,13 +6,7 @@ import { cn } from "@/lib/utils";
 import { NetworkStatusIndicator } from "@/components/ui/network-status";
 
 // Ícones Oficiais
-import {
-  ChevronLeft,
-  Building,
-  LocationCheck,
-  EditAlt,
-  Calendar,
-} from "@boxicons/react";
+import { ChevronLeft, Building, LocationCheck, EditAlt } from "@boxicons/react";
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -32,7 +26,7 @@ export default function NewProjectPage() {
     setIsLoading(true);
 
     try {
-      // Dispara os dados para a API que acabamos de criar
+      // Dispara os dados para a API
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -45,7 +39,7 @@ export default function NewProjectPage() {
         throw new Error(data.error || "Ocorreu um erro ao criar a obra.");
       }
 
-      // O Next.js atualiza o cache para a nova obra aparecer imediatamente na lista
+      // Atualiza o cache e volta pro Dashboard
       router.refresh();
       router.push("/dashboard");
     } catch (err: any) {
@@ -74,14 +68,6 @@ export default function NewProjectPage() {
       {/* Corpo do Formulário */}
       <main className="flex-1 px-6 py-6 pb-28">
         <div className="mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 border border-primary/20">
-            <Building
-              pack="basic"
-              width={32}
-              height={32}
-              className="text-primary"
-            />
-          </div>
           <h2 className="text-2xl font-bold text-foreground tracking-tight">
             Cadastrar Projeto
           </h2>
@@ -188,8 +174,8 @@ export default function NewProjectPage() {
             </div>
           </div>
 
-          {/* Área de Botão Fixa (Bottom) */}
-          <div className="fixed bottom-0 left-0 w-full p-6 bg-linear-to-t from-background via-background/95 to-transparent pb-safe">
+          {/* Área de Botão Normalizada no Fluxo da Tela */}
+          <div className="pt-4 mt-2 pb-8">
             <button
               type="submit"
               disabled={isLoading || !name || !address || !city || !state}
