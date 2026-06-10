@@ -1,13 +1,14 @@
 // Prisma Schema - Sistema de Gestão de Canteiro de Obras e RDO
-// Banco de dados: PostgreSQL (compatível com Supabase/Neon)
+// Banco de dados: PostgreSQL (Otimizado para Neon Serverless)
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // String com pooling (usada pela aplicação)
+  directUrl = env("DIRECT_URL")   // String direta (usada para rodar as migrations)
 }
 
 // ==========================================
@@ -15,45 +16,45 @@ datasource db {
 // ==========================================
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  passwordHash  String?
-  name          String
-  role          UserRole  @default(WORKER)
-  phone         String?
-  cpf           String?   @unique
-  crea          String?   // Registro CREA para engenheiros
-  art           String?   // ART vinculada
-  rrt           String?   // RRT para arquitetos
-  avatarUrl     String?
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  lastLoginAt   DateTime?
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String?
+  name         String
+  role         UserRole      @default(WORKER)
+  phone        String?
+  cpf          String?       @unique
+  crea         String?       // Registro CREA para engenheiros
+  art          String?       // ART vinculada
+  rrt          String?       // RRT para arquitetos
+  avatarUrl    String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  lastLoginAt  DateTime?
 
   // Relacionamentos
-  company       Company?  @relation(fields: [companyId], references: [id])
-  companyId     String?
-  projects      ProjectMember[]
-  rdos          RDO[]
-  photos        Photo[]
-  signatures    Signature[]
-  emergencies   Emergency[]
-  sessions      Session[]
+  company      Company?      @relation(fields: [companyId], references: [id])
+  companyId    String?
+  projects     ProjectMember[]
+  rdos         RDO[]
+  photos       Photo[]
+  signatures   Signature[]
+  emergencies  Emergency[]
+  sessions     Session[]
 
   @@index([email])
   @@index([companyId])
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  token        String   @unique
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deviceInfo   String?
-  ipAddress    String?
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
+  id         String   @id @default(cuid())
+  token      String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceInfo String?
+  ipAddress  String?
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
 
   @@index([token])
   @@index([userId])
@@ -82,12 +83,12 @@ model Company {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users     User[]
-  projects  Project[]
+  users    User[]
+  projects Project[]
 }
 
 model Project {
-  id              String   @id @default(cuid())
+  id              String        @id @default(cuid())
   name            String
   description     String?
   address         String
@@ -101,26 +102,26 @@ model Project {
   actualEndDate   DateTime?
   status          ProjectStatus @default(PLANNING)
   bimModelUrl     String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  company         Company  @relation(fields: [companyId], references: [id])
-  companyId       String
-  members         ProjectMember[]
-  rdos            RDO[]
-  photos          Photo[]
-  equipment       Equipment[]
-  bimElements     BIMElement[]
-  emergencies     Emergency[]
+  company     Company         @relation(fields: [companyId], references: [id])
+  companyId   String
+  members     ProjectMember[]
+  rdos        RDO[]
+  photos      Photo[]
+  equipment   Equipment[]
+  bimElements BIMElement[]
+  emergencies Emergency[]
 
   @@index([companyId])
   @@index([status])
 }
 
 model ProjectMember {
-  id        String   @id @default(cuid())
-  role      MemberRole @default(MEMBER)
-  joinedAt  DateTime @default(now())
+  id       String     @id @default(cuid())
+  role     MemberRole @default(MEMBER)
+  joinedAt DateTime   @default(now())
 
   user      User     @relation(fields: [userId], references: [id])
   userId    String
@@ -152,49 +153,49 @@ enum MemberRole {
 // ==========================================
 
 model RDO {
-  id                String   @id @default(cuid())
-  date              DateTime @default(now())
-  number            Int      // Número sequencial do RDO
-  status            RDOStatus @default(DRAFT)
+  id               String            @id @default(cuid())
+  date             DateTime          @default(now())
+  number           Int               // Número sequencial do RDO
+  status           RDOStatus         @default(DRAFT)
   
   // Localização
-  latitude          Float?
-  longitude         Float?
-  address           String?
+  latitude         Float?
+  longitude        Float?
+  address          String?
   
-  // Clima (preenchido via API ou manual)
-  weatherCondition  WeatherCondition?
-  temperature       Float?
-  humidity          Float?
-  windSpeed         Float?
-  weatherNotes      String?
+  // Clima
+  weatherCondition WeatherCondition?
+  temperature      Float?
+  humidity         Float?
+  windSpeed        Float?
+  weatherNotes     String?
   
   // Período de trabalho
-  workStartTime     DateTime?
-  workEndTime       DateTime?
-  lunchStartTime    DateTime?
-  lunchEndTime      DateTime?
+  workStartTime    DateTime?
+  workEndTime      DateTime?
+  lunchStartTime   DateTime?
+  lunchEndTime     DateTime?
   
   // Observações gerais
-  activities        String?  @db.Text
-  observations      String?  @db.Text
-  issues            String?  @db.Text
+  activities       String?           @db.Text
+  observations     String?           @db.Text
+  issues           String?           @db.Text
   
   // Metadados de sincronização offline
-  localId           String?  @unique // ID local para sync offline
-  syncedAt          DateTime?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  localId          String?           @unique
+  syncedAt         DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   // Relacionamentos
-  project           Project  @relation(fields: [projectId], references: [id])
-  projectId         String
-  createdBy         User     @relation(fields: [createdById], references: [id])
-  createdById       String
-  workforce         Workforce[]
-  equipmentUsage    EquipmentUsage[]
-  photos            Photo[]
-  signatures        Signature[]
+  project        Project          @relation(fields: [projectId], references: [id])
+  projectId      String
+  createdBy      User             @relation(fields: [createdById], references: [id])
+  createdById    String
+  workforce      Workforce[]
+  equipmentUsage EquipmentUsage[]
+  photos         Photo[]
+  signatures     Signature[]
 
   @@unique([projectId, number])
   @@index([projectId, date])
@@ -232,8 +233,8 @@ model Workforce {
   hoursWorked Float?
   notes       String?
 
-  rdo         RDO      @relation(fields: [rdoId], references: [id], onDelete: Cascade)
-  rdoId       String
+  rdo   RDO    @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+  rdoId String
 
   @@index([rdoId])
 }
@@ -243,22 +244,22 @@ model Workforce {
 // ==========================================
 
 model Equipment {
-  id            String   @id @default(cuid())
-  name          String
-  type          String
-  serialNumber  String?
-  plate         String?  // Para veículos
-  qrCode        String?  @unique
-  barcode       String?  @unique
-  status        EquipmentStatus @default(AVAILABLE)
+  id              String          @id @default(cuid())
+  name            String
+  type            String
+  serialNumber    String?
+  plate           String?         // Para veículos
+  qrCode          String?         @unique
+  barcode         String?         @unique
+  status          EquipmentStatus @default(AVAILABLE)
   lastMaintenance DateTime?
   nextMaintenance DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
-  project       Project  @relation(fields: [projectId], references: [id])
-  projectId     String
-  usage         EquipmentUsage[]
+  project   Project          @relation(fields: [projectId], references: [id])
+  projectId String
+  usage     EquipmentUsage[]
 
   @@index([projectId])
   @@index([qrCode])
@@ -266,18 +267,18 @@ model Equipment {
 }
 
 model EquipmentUsage {
-  id              String   @id @default(cuid())
-  horimeterStart  Float?
-  horimeterEnd    Float?
-  hoursUsed       Float?
-  fuelConsumed    Float?
-  operatorName    String?
-  notes           String?
+  id             String @id @default(cuid())
+  horimeterStart Float?
+  horimeterEnd   Float?
+  hoursUsed      Float?
+  fuelConsumed   Float?
+  operatorName   String?
+  notes          String?
 
-  equipment       Equipment @relation(fields: [equipmentId], references: [id])
-  equipmentId     String
-  rdo             RDO      @relation(fields: [rdoId], references: [id], onDelete: Cascade)
-  rdoId           String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id])
+  equipmentId String
+  rdo         RDO       @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+  rdoId       String
 
   @@index([rdoId])
   @@index([equipmentId])
@@ -296,44 +297,44 @@ enum EquipmentStatus {
 // ==========================================
 
 model Photo {
-  id              String   @id @default(cuid())
-  filename        String
-  url             String
-  thumbnailUrl    String?
-  mimeType        String   @default("image/jpeg")
-  size            Int      // Em bytes
+  id             String        @id @default(cuid())
+  filename       String
+  url            String
+  thumbnailUrl   String?
+  mimeType       String        @default("image/jpeg")
+  size           Int           // Em bytes
   
   // Metadados automáticos
-  latitude        Float?
-  longitude       Float?
-  compassBearing  Float?   // Orientação da bússola
-  timestamp       DateTime @default(now())
+  latitude       Float?
+  longitude      Float?
+  compassBearing Float?        // Orientação da bússola
+  timestamp      DateTime      @default(now())
   
   // Markup/Anotações
-  hasMarkup       Boolean  @default(false)
-  markupData      String?  @db.Text // JSON com dados do desenho
+  hasMarkup      Boolean       @default(false)
+  markupData     String?       @db.Text
   
   // Categorização
-  category        PhotoCategory @default(GENERAL)
-  description     String?
-  tags            String[] // Array de tags
+  category    PhotoCategory @default(GENERAL)
+  description String?
+  tags        String[]
   
   // QR/Barcode detectado
   scannedCode     String?
-  scannedCodeType String?  // QR, BARCODE, etc.
+  scannedCodeType String?
   
   // Sincronização offline
-  localId         String?  @unique
-  syncedAt        DateTime?
-  createdAt       DateTime @default(now())
+  localId  String?   @unique
+  syncedAt DateTime?
+  createdAt DateTime @default(now())
 
   // Relacionamentos
-  project         Project  @relation(fields: [projectId], references: [id])
-  projectId       String
-  rdo             RDO?     @relation(fields: [rdoId], references: [id])
-  rdoId           String?
-  uploadedBy      User     @relation(fields: [uploadedById], references: [id])
-  uploadedById    String
+  project      Project @relation(fields: [projectId], references: [id])
+  projectId    String
+  rdo          RDO?    @relation(fields: [rdoId], references: [id])
+  rdoId        String?
+  uploadedBy   User    @relation(fields: [uploadedById], references: [id])
+  uploadedById String
 
   @@index([projectId])
   @@index([rdoId])
@@ -356,18 +357,18 @@ enum PhotoCategory {
 // ==========================================
 
 model Signature {
-  id          String   @id @default(cuid())
-  imageData   String   @db.Text // Base64 da assinatura
-  signedAt    DateTime @default(now())
-  ipAddress   String?
-  deviceInfo  String?
-  latitude    Float?
-  longitude   Float?
+  id         String   @id @default(cuid())
+  imageData  String   @db.Text // Base64 da assinatura
+  signedAt   DateTime @default(now())
+  ipAddress  String?
+  deviceInfo String?
+  latitude   Float?
+  longitude  Float?
 
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String
-  rdo         RDO      @relation(fields: [rdoId], references: [id])
-  rdoId       String
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+  rdo    RDO    @relation(fields: [rdoId], references: [id])
+  rdoId  String
 
   @@index([rdoId])
   @@index([userId])
@@ -378,23 +379,23 @@ model Signature {
 // ==========================================
 
 model BIMElement {
-  id              String   @id @default(cuid())
-  guid            String   // GUID do elemento IFC
-  name            String
-  type            String   // Wall, Slab, Column, etc.
-  level           String?  // Pavimento
-  status          BIMElementStatus @default(PLANNED)
-  plannedStart    DateTime?
-  plannedEnd      DateTime?
-  actualStart     DateTime?
-  actualEnd       DateTime?
-  progress        Float    @default(0) // 0-100%
-  bcfTopic        String?  // ID do tópico BCF
-  notes           String?
-  updatedAt       DateTime @updatedAt
+  id           String           @id @default(cuid())
+  guid         String           // GUID do elemento IFC
+  name         String
+  type         String           // Wall, Slab, Column, etc.
+  level        String?          // Pavimento
+  status       BIMElementStatus @default(PLANNED)
+  plannedStart DateTime?
+  plannedEnd   DateTime?
+  actualStart  DateTime?
+  actualEnd    DateTime?
+  progress     Float            @default(0) // 0-100%
+  bcfTopic     String?          // ID do tópico BCF
+  notes        String?
+  updatedAt    DateTime         @updatedAt
 
-  project         Project  @relation(fields: [projectId], references: [id])
-  projectId       String
+  project   Project @relation(fields: [projectId], references: [id])
+  projectId String
 
   @@unique([projectId, guid])
   @@index([projectId])
@@ -414,19 +415,19 @@ enum BIMElementStatus {
 // ==========================================
 
 model Emergency {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   type        EmergencyType
   description String?
   latitude    Float
   longitude   Float
-  accuracy    Float?   // Precisão do GPS em metros
+  accuracy    Float?          // Precisão do GPS em metros
   status      EmergencyStatus @default(ACTIVE)
   resolvedAt  DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime        @default(now())
 
-  project     Project  @relation(fields: [projectId], references: [id])
-  projectId   String
-  triggeredBy User     @relation(fields: [triggeredById], references: [id])
+  project       Project @relation(fields: [projectId], references: [id])
+  projectId     String
+  triggeredBy   User    @relation(fields: [triggeredById], references: [id])
   triggeredById String
 
   @@index([projectId])
@@ -450,19 +451,19 @@ enum EmergencyStatus {
 }
 
 // ==========================================
-// SINCRONIZAÇÃO OFFLINE
+// SINCRONIZAÇÃO OFFLINE (Fila de Sync)
 // ==========================================
 
 model SyncQueue {
-  id          String   @id @default(cuid())
-  entityType  String   // RDO, Photo, etc.
-  entityId    String   // ID local da entidade
+  id          String     @id @default(cuid())
+  entityType  String     // RDO, Photo, etc.
+  entityId    String     // ID local da entidade
   action      SyncAction
-  payload     String   @db.Text // JSON com dados
-  retryCount  Int      @default(0)
+  payload     String     @db.Text
+  retryCount  Int        @default(0)
   lastError   String?
   status      SyncStatus @default(PENDING)
-  createdAt   DateTime @default(now())
+  createdAt   DateTime   @default(now())
   processedAt DateTime?
 
   @@index([status])
