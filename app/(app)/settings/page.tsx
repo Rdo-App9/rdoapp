@@ -25,6 +25,13 @@ export default function SettingsPage() {
   const [showLogoutSheet, setShowLogoutSheet] = useState(false);
   const [showClearCacheSheet, setShowClearCacheSheet] = useState(false);
 
+  // Novos estados para a Gestão de Mídia
+  const [showStorageSheet, setShowStorageSheet] = useState(false);
+  const [storageMode, setStorageMode] = useState<"global" | "individual">(
+    "global",
+  );
+  const [globalDays, setGlobalDays] = useState(90);
+
   // Mock user data
   const user = {
     name: "João Silva",
@@ -32,12 +39,13 @@ export default function SettingsPage() {
     role: "Engenheiro de Obra",
   };
 
-  const currentProject = {
-    name: "Edifício Aurora",
-    code: "PRJ-2024-001",
-  };
+  // Mock projects data para a configuração individual
+  const mockProjects = [
+    { id: "1", name: "Edifício Aurora", days: 30 },
+    { id: "2", name: "Condomínio Horizonte", days: 90 },
+    { id: "3", name: "Galpão Logístico BR", days: 180 },
+  ];
 
-  // Ícones limpos (sem o prefixo bx-) e com opção de não usar ícones em tudo
   const sections: SettingSection[] = [
     {
       title: "Conta",
@@ -48,31 +56,18 @@ export default function SettingsPage() {
       ],
     },
     {
-      title: "Projeto",
+      title: "Sistema & Dados",
       items: [
         {
-          icon: "building",
-          label: "Obra Atual",
-          value: currentProject.name,
-          action: () => router.push("/login"),
+          icon: "cloud",
+          label: "Armazenamento e Mídia",
+          value: "90 dias",
+          action: () => setShowStorageSheet(true),
         },
-        { icon: "hash", label: "Código", value: currentProject.code },
-      ],
-    },
-    {
-      title: "Sistema & Offline",
-      items: [
-        { icon: "bell", label: "Notificações", action: () => {} },
         {
           icon: "cloud-download",
           label: "Dados Offline",
           value: "128 MB",
-          action: () => {},
-        },
-        {
-          icon: "sync",
-          label: "Sincronização",
-          value: "Automática",
           action: () => {},
         },
         {
@@ -93,9 +88,15 @@ export default function SettingsPage() {
     },
   ];
 
+  const retentionOptions = [
+    { value: 30, label: "30 dias" },
+    { value: 60, label: "60 dias" },
+    { value: 90, label: "90 dias" },
+    { value: 180, label: "6 meses" },
+  ];
+
   return (
     <div className="flex-1 flex flex-col h-full bg-background relative">
-      {/* Header Fixo Sóbrio */}
       <header className="pt-safe sticky top-0 bg-background border-b border-border z-10">
         <div className="px-6 py-4 flex items-center justify-between">
           <button
@@ -114,9 +115,7 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      {/* Main Content - pb-24 garante que a navegação global não cubra o botão de Sair */}
       <main className="flex-1 px-6 pt-6 pb-24 lg:pb-8 overflow-y-auto space-y-8">
-        {/* Profile Card Minimalista */}
         <div className="p-4 rounded-md border border-border bg-transparent flex items-center gap-4">
           <div className="w-12 h-12 rounded-md bg-secondary/30 flex items-center justify-center">
             <BoxIcon name="user" size={24} className="text-muted-foreground" />
@@ -128,16 +127,12 @@ export default function SettingsPage() {
             <p className="text-sm text-muted-foreground truncate">
               {user.role}
             </p>
-            <p className="text-xs text-muted-foreground truncate mt-0.5">
-              {currentProject.name}
-            </p>
           </div>
           <button className="p-2 text-muted-foreground hover:text-foreground active:scale-95 transition-transform">
             <BoxIcon name="pencil" size={20} />
           </button>
         </div>
 
-        {/* Configurações em blocos discretos */}
         <div className="space-y-6">
           {sections.map((section) => (
             <section key={section.title}>
@@ -160,7 +155,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-3">
                       {item.icon && (
                         <BoxIcon
-                          name={item.icon as any} // Cast simples para contornar o TS nesta iteração
+                          name={item.icon as any}
                           size={20}
                           className={
                             item.danger
@@ -178,7 +173,6 @@ export default function SettingsPage() {
                         {item.label}
                       </span>
                     </div>
-
                     <div className="flex items-center gap-2">
                       {item.value && (
                         <span className="text-sm text-muted-foreground">
@@ -200,7 +194,6 @@ export default function SettingsPage() {
           ))}
         </div>
 
-        {/* Logout Button Clean */}
         <button
           onClick={() => setShowLogoutSheet(true)}
           className="w-full h-12 rounded-md border border-destructive/30 bg-transparent flex items-center justify-center gap-2 active:bg-destructive/10 transition-colors"
@@ -212,27 +205,136 @@ export default function SettingsPage() {
         </button>
       </main>
 
-      {/* Sheets de Confirmação (Corrigido para "open") */}
+      {/* ==================== BOTTOM SHEET: RETENÇÃO DE MÍDIA ==================== */}
+      <BottomSheet
+        open={showStorageSheet}
+        onClose={() => setShowStorageSheet(false)}
+        title="Limpeza de Mídia"
+      >
+        <div className="px-4 pb-6 space-y-6">
+          <p className="text-sm text-muted-foreground text-center">
+            Defina em quanto tempo as fotos e vídeos serão apagados
+            automaticamente da nuvem para economizar espaço.
+          </p>
+
+          {/* Abas de Seleção */}
+          <div className="flex p-1 bg-secondary/30 rounded-lg">
+            <button
+              onClick={() => setStorageMode("global")}
+              className={cn(
+                "flex-1 py-2 text-sm font-medium rounded-md transition-all",
+                storageMode === "global"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground",
+              )}
+            >
+              Regra Global
+            </button>
+            <button
+              onClick={() => setStorageMode("individual")}
+              className={cn(
+                "flex-1 py-2 text-sm font-medium rounded-md transition-all",
+                storageMode === "individual"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground",
+              )}
+            >
+              Por Obra
+            </button>
+          </div>
+
+          {/* Conteúdo: Regra Global */}
+          {storageMode === "global" && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="grid grid-cols-2 gap-3">
+                {retentionOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setGlobalDays(opt.value)}
+                    className={cn(
+                      "h-12 rounded-md border text-sm font-medium transition-all active:scale-95",
+                      globalDays === opt.value
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-transparent text-foreground",
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  console.log("Salvar Global no Prisma:", globalDays);
+                  setShowStorageSheet(false);
+                }}
+                className="w-full h-12 mt-4 rounded-md bg-primary text-primary-foreground font-bold active:scale-[0.98] transition-transform"
+              >
+                Aplicar a Todas as Obras
+              </button>
+            </div>
+          )}
+
+          {/* Conteúdo: Regra Individual */}
+          {storageMode === "individual" && (
+            <div className="space-y-3 animate-in fade-in slide-in-from-left-4 duration-300">
+              {mockProjects.map((project) => (
+                <div
+                  key={project.id}
+                  className="flex items-center justify-between p-3 rounded-md border border-border"
+                >
+                  <div className="flex items-center gap-3">
+                    <BoxIcon
+                      name="building"
+                      size={20}
+                      className="text-muted-foreground"
+                    />
+                    <span className="text-sm font-medium">{project.name}</span>
+                  </div>
+                  <select
+                    className="bg-secondary/30 border-none text-sm font-medium rounded-md px-2 py-1 outline-none focus:ring-1 focus:ring-primary"
+                    defaultValue={project.days}
+                  >
+                    <option value="30">30 dias</option>
+                    <option value="60">60 dias</option>
+                    <option value="90">90 dias</option>
+                    <option value="180">6 meses</option>
+                  </select>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  console.log("Salvar Individuais no Prisma");
+                  setShowStorageSheet(false);
+                }}
+                className="w-full h-12 mt-4 rounded-md bg-primary text-primary-foreground font-bold active:scale-[0.98] transition-transform"
+              >
+                Salvar Regras
+              </button>
+            </div>
+          )}
+        </div>
+      </BottomSheet>
+
+      {/* Sheets Antigos (Logout / Cache) */}
       <BottomSheet
         open={showLogoutSheet}
         onClose={() => setShowLogoutSheet(false)}
         title="Sair da Conta"
       >
-        <div className="space-y-6 pb-6">
-          <p className="text-sm text-muted-foreground text-center px-4">
-            Tem certeza que deseja sair? Dados não sincronizados com a nuvem
-            podem ser perdidos.
+        <div className="space-y-6 pb-6 px-4">
+          <p className="text-sm text-muted-foreground text-center">
+            Tem certeza que deseja sair?
           </p>
           <div className="flex gap-3">
             <button
               onClick={() => setShowLogoutSheet(false)}
-              className="flex-1 h-12 rounded-md border border-input bg-transparent text-sm font-medium active:bg-secondary/50 transition-colors"
+              className="flex-1 h-12 rounded-md border border-input bg-transparent text-sm font-medium active:bg-secondary/50"
             >
               Cancelar
             </button>
             <button
               onClick={() => router.push("/login")}
-              className="flex-1 h-12 rounded-md bg-destructive text-destructive-foreground text-sm font-medium active:scale-[0.98] transition-transform"
+              className="flex-1 h-12 rounded-md bg-destructive text-destructive-foreground text-sm font-medium active:scale-[0.98]"
             >
               Sair
             </button>
@@ -245,24 +347,20 @@ export default function SettingsPage() {
         onClose={() => setShowClearCacheSheet(false)}
         title="Limpar Cache"
       >
-        <div className="space-y-6 pb-6">
-          <p className="text-sm text-muted-foreground text-center px-4">
-            Isso removerá todos os dados offline do seu aparelho. Você precisará
-            baixar os projetos novamente quando tiver internet.
+        <div className="space-y-6 pb-6 px-4">
+          <p className="text-sm text-muted-foreground text-center">
+            Isso removerá todos os dados offline do seu aparelho.
           </p>
           <div className="flex gap-3">
             <button
               onClick={() => setShowClearCacheSheet(false)}
-              className="flex-1 h-12 rounded-md border border-input bg-transparent text-sm font-medium active:bg-secondary/50 transition-colors"
+              className="flex-1 h-12 rounded-md border border-input bg-transparent text-sm font-medium active:bg-secondary/50"
             >
               Cancelar
             </button>
             <button
-              onClick={() => {
-                // Lógica de limpar cache entraria aqui
-                setShowClearCacheSheet(false);
-              }}
-              className="flex-1 h-12 rounded-md bg-destructive text-destructive-foreground text-sm font-medium active:scale-[0.98] transition-transform"
+              onClick={() => setShowClearCacheSheet(false)}
+              className="flex-1 h-12 rounded-md bg-destructive text-destructive-foreground text-sm font-medium active:scale-[0.98]"
             >
               Limpar Dados
             </button>

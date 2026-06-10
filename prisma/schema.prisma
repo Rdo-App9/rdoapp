@@ -80,6 +80,10 @@ model Company {
   address   String?
   phone     String?
   email     String?
+  
+  // REGRA GLOBAL: Prazo padrão de retenção em dias para todas as obras da empresa
+  mediaRetentionDays Int @default(90) 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -102,6 +106,9 @@ model Project {
   actualEndDate   DateTime?
   status          ProjectStatus @default(PLANNING)
   bimModelUrl     String?
+
+  mediaRetentionDays Int? 
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 

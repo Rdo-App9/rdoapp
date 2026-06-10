@@ -3,12 +3,23 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { BoxIcon } from "@/components/ui/box-icon";
 import { BottomSheet, BottomSheetOption } from "@/components/ui/bottom-sheet";
 import { NetworkStatusIndicator } from "@/components/ui/network-status";
 import { v4 as uuidv4 } from "uuid";
 
-// 1. Importar todos os sub-componentes que criámos
+// Ícones Oficiais do Boxicons
+import {
+  ChevronLeft,
+  Check,
+  Sun,
+  Cloud,
+  CloudRain,
+  CloudLightning,
+  User,
+  Spanner,
+} from "@boxicons/react";
+
+// Sub-componentes
 import { StepIdentification } from "@/components/rdo/step-identification";
 import { StepWeather } from "@/components/rdo/step-weather";
 import { StepWorkforce } from "@/components/rdo/step-workforce";
@@ -38,13 +49,13 @@ interface EquipmentEntry {
 const weatherOptions: {
   value: WeatherCondition;
   label: string;
-  icon: "sun" | "cloud" | "cloud-rain" | "cloud-lightning";
+  icon: any;
 }[] = [
-  { value: "sunny", label: "Ensolarado", icon: "sun" },
-  { value: "partly_cloudy", label: "Parcialmente Nublado", icon: "cloud" },
-  { value: "cloudy", label: "Nublado", icon: "cloud" },
-  { value: "rainy", label: "Chuvoso", icon: "cloud-rain" },
-  { value: "stormy", label: "Tempestade", icon: "cloud-lightning" },
+  { value: "sunny", label: "Ensolarado", icon: Sun },
+  { value: "partly_cloudy", label: "Parcialmente Nublado", icon: Cloud },
+  { value: "cloudy", label: "Nublado", icon: Cloud },
+  { value: "rainy", label: "Chuvoso", icon: CloudRain },
+  { value: "stormy", label: "Tempestade", icon: CloudLightning },
 ];
 
 const defaultWorkforceCategories = [
@@ -73,13 +84,13 @@ export default function NewRDOPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Controlo dos painéis (Bottom Sheets)
+  // Controles dos Bottom Sheets
   const [showWeatherSheet, setShowWeatherSheet] = useState(false);
   const [showAddWorkerSheet, setShowAddWorkerSheet] = useState(false);
   const [showAddEquipmentSheet, setShowAddEquipmentSheet] = useState(false);
 
   // Estados Globais do RDO
-  const [rdoNumber] = useState(46);
+  const [rdoNumber] = useState(1); // Voltamos para o 1 por enquanto (o banco decidirá)
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
     null,
   );
@@ -89,13 +100,13 @@ export default function NewRDOPage() {
   const [humidity, setHumidity] = useState(65);
 
   const [workforce, setWorkforce] = useState<WorkforceEntry[]>([
-    { id: "1", category: "Pedreiro", quantity: 4 },
-    { id: "2", category: "Servente", quantity: 6 },
+    { id: uuidv4(), category: "Pedreiro", quantity: 4 },
+    { id: uuidv4(), category: "Servente", quantity: 6 },
   ]);
 
   const [equipment, setEquipment] = useState<EquipmentEntry[]>([
     {
-      id: "1",
+      id: uuidv4(),
       name: "Betoneira 400L",
       horimeterStart: 1250,
       horimeterEnd: 1258,
@@ -127,11 +138,12 @@ export default function NewRDOPage() {
     { title: "Assinatura" },
   ];
 
-  // Funções manipuladoras (Handlers)
+  // ==================== Handlers ====================
   const updateWorkforce = (id: string, quantity: number) =>
     setWorkforce((prev) =>
       prev.map((w) => (w.id === id ? { ...w, quantity } : w)),
     );
+
   const addWorkforce = (category: string) => {
     setWorkforce((prev) => [...prev, { id: uuidv4(), category, quantity: 1 }]);
     setShowAddWorkerSheet(false);
@@ -147,6 +159,7 @@ export default function NewRDOPage() {
     setEquipment((prev) =>
       prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)),
     );
+
   const addEquipment = (name: string) => {
     setEquipment((prev) => [
       ...prev,
@@ -157,10 +170,28 @@ export default function NewRDOPage() {
   const removeEquipment = (id: string) =>
     setEquipment((prev) => prev.filter((e) => e.id !== id));
 
+  // ==================== Salvar no Banco ====================
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await new Promise((res) => setTimeout(res, 1500));
+      // Monta o pacote de dados exato que o Prisma precisa
+      const payload = {
+        location,
+        weather,
+        temperature,
+        humidity,
+        workforce,
+        equipment,
+        activities,
+        observations,
+        issues,
+        signature,
+      };
+
+      console.log("RDO PRONTO PARA O BANCO:", payload);
+
+      // TODO: Enviar o payload para /api/rdo/create
+      await new Promise((res) => setTimeout(res, 1000));
       router.push("/dashboard");
     } catch (error) {
       console.error(error);
@@ -178,7 +209,7 @@ export default function NewRDOPage() {
       case 2:
         return workforce.length > 0;
       case 3:
-        return true; // Equipamento pode ser vazio num dia
+        return true;
       case 4:
         return activities.trim().length > 0;
       case 5:
@@ -190,25 +221,18 @@ export default function NewRDOPage() {
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background relative">
-      {/* Cabeçalho */}
       <header className="pt-safe sticky top-0 bg-background border-b border-border z-10">
         <div className="px-6 py-4 flex items-center justify-between">
           <button
-            type="button"
             onClick={() => router.back()}
             className="w-10 h-10 rounded-md border border-input bg-transparent flex items-center justify-center active:bg-secondary/50 transition-colors"
           >
-            <BoxIcon name="chevron-left" size={24} />
+            <ChevronLeft pack="basic" width={24} height={24} />
           </button>
-          <div className="text-center">
-            <h1 className="text-base font-bold text-foreground">
-              Novo RDO #{rdoNumber}
-            </h1>
-          </div>
+          <h1 className="text-base font-bold text-foreground">Novo RDO</h1>
           <NetworkStatusIndicator showLabel={false} />
         </div>
 
-        {/* Barra de Progresso */}
         <div className="px-6 pb-4">
           <div className="flex items-center justify-between relative">
             <div className="absolute left-0 top-1/2 w-full h-px bg-border -z-10 transform -translate-y-1/2"></div>
@@ -229,7 +253,7 @@ export default function NewRDOPage() {
                   )}
                 >
                   {index < currentStep ? (
-                    <BoxIcon name="check" size={16} />
+                    <Check pack="basic" width={16} height={16} />
                   ) : (
                     index + 1
                   )}
@@ -245,9 +269,7 @@ export default function NewRDOPage() {
         </div>
       </header>
 
-      {/* Área Principal (Rende os Sub-componentes) */}
       <main className="flex-1 px-6 pt-6 pb-28 overflow-y-auto flex flex-col">
-        {/* O flex-1 aqui empurra os botões para o fundo se a tela for muito grande */}
         <div className="flex-1">
           {currentStep === 0 && (
             <StepIdentification
@@ -255,7 +277,6 @@ export default function NewRDOPage() {
               onUpdateLocation={setLocation}
             />
           )}
-
           {currentStep === 1 && (
             <StepWeather
               weather={weather}
@@ -267,7 +288,6 @@ export default function NewRDOPage() {
               onOpenWeatherSheet={() => setShowWeatherSheet(true)}
             />
           )}
-
           {currentStep === 2 && (
             <StepWorkforce
               workforce={workforce}
@@ -276,7 +296,6 @@ export default function NewRDOPage() {
               onOpenAddSheet={() => setShowAddWorkerSheet(true)}
             />
           )}
-
           {currentStep === 3 && (
             <StepEquipment
               equipment={equipment}
@@ -285,7 +304,6 @@ export default function NewRDOPage() {
               onOpenAddSheet={() => setShowAddEquipmentSheet(true)}
             />
           )}
-
           {currentStep === 4 && (
             <StepActivities
               activities={activities}
@@ -296,7 +314,6 @@ export default function NewRDOPage() {
               setIssues={setIssues}
             />
           )}
-
           {currentStep === 5 && (
             <StepSignature
               weather={weather}
@@ -310,11 +327,9 @@ export default function NewRDOPage() {
           )}
         </div>
 
-        {/* Rodapé de Navegação do Formulário (Agora flui junto com a página) */}
         <div className="mt-8 pt-6 border-t border-border flex gap-3">
           {currentStep > 0 && (
             <button
-              type="button"
               onClick={() => setCurrentStep((prev) => prev - 1)}
               className="flex-1 h-12 rounded-md border border-input bg-transparent text-sm font-medium flex items-center justify-center gap-2 active:bg-secondary/50 transition-colors"
             >
@@ -324,7 +339,6 @@ export default function NewRDOPage() {
 
           {currentStep < steps.length - 1 ? (
             <button
-              type="button"
               onClick={() => setCurrentStep((prev) => prev + 1)}
               disabled={!canProceed()}
               className="flex-2 h-12 rounded-md bg-foreground text-background text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:pointer-events-none"
@@ -333,7 +347,6 @@ export default function NewRDOPage() {
             </button>
           ) : (
             <button
-              type="button"
               onClick={handleSave}
               disabled={!signature || isSaving}
               className="flex-2 h-12 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:pointer-events-none"
@@ -344,25 +357,28 @@ export default function NewRDOPage() {
         </div>
       </main>
 
-      {/* ================= Bottom Sheets (Painéis Móveis) ================= */}
+      {/* Modais de Seleção */}
       <BottomSheet
         open={showWeatherSheet}
         onClose={() => setShowWeatherSheet(false)}
         title="Condição do Tempo"
       >
-        <div className="space-y-2 pb-6">
-          {weatherOptions.map((option) => (
-            <BottomSheetOption
-              key={option.value}
-              label={option.label}
-              icon={<BoxIcon name={option.icon} size={24} />}
-              selected={weather === option.value}
-              onClick={() => {
-                setWeather(option.value);
-                setShowWeatherSheet(false);
-              }}
-            />
-          ))}
+        <div className="space-y-2 pb-6 px-4">
+          {weatherOptions.map((option) => {
+            const IconComponent = option.icon;
+            return (
+              <BottomSheetOption
+                key={option.value}
+                label={option.label}
+                icon={<IconComponent pack="basic" width={24} height={24} />}
+                selected={weather === option.value}
+                onClick={() => {
+                  setWeather(option.value);
+                  setShowWeatherSheet(false);
+                }}
+              />
+            );
+          })}
         </div>
       </BottomSheet>
 
@@ -371,14 +387,14 @@ export default function NewRDOPage() {
         onClose={() => setShowAddWorkerSheet(false)}
         title="Adicionar Categoria"
       >
-        <div className="space-y-2 pb-6">
+        <div className="space-y-2 pb-6 px-4">
           {defaultWorkforceCategories
             .filter((cat) => !workforce.some((w) => w.category === cat))
             .map((category) => (
               <BottomSheetOption
                 key={category}
                 label={category}
-                icon={<BoxIcon name="user" size={24} />}
+                icon={<User pack="basic" width={24} height={24} />}
                 onClick={() => addWorkforce(category)}
               />
             ))}
@@ -390,14 +406,14 @@ export default function NewRDOPage() {
         onClose={() => setShowAddEquipmentSheet(false)}
         title="Adicionar Equipamento"
       >
-        <div className="space-y-2 pb-6">
+        <div className="space-y-2 pb-6 px-4">
           {defaultEquipmentCategories
             .filter((cat) => !equipment.some((e) => e.name === cat))
             .map((category) => (
               <BottomSheetOption
                 key={category}
                 label={category}
-                icon={<BoxIcon name="wrench" size={24} />}
+                icon={<Spanner pack="basic" width={24} height={24} />}
                 onClick={() => addEquipment(category)}
               />
             ))}
