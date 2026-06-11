@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { BottomSheet } from "@/components/ui/bottom-sheet";
 import { motion, useAnimation, PanInfo } from "framer-motion";
@@ -50,29 +51,21 @@ function SwipeableProjectItem({
 }) {
   const controls = useAnimation();
 
-  // Física do arrasto com elástico e limite
   const handleDragEnd = (event: any, info: PanInfo) => {
     const offset = info.offset.x;
     const velocity = info.velocity.x;
 
-    // Se puxou para a ESQUERDA com força (Revela Editar e Arquivar na direita)
     if (offset < -50 || velocity < -500) {
       controls.start({ x: -110 });
-    }
-    // Se puxou para a DIREITA com força (Revela Excluir na esquerda)
-    else if (offset > 50 || velocity > 500) {
+    } else if (offset > 50 || velocity > 500) {
       controls.start({ x: 65 });
-    }
-    // Se foi só um toquezinho solto, volta pro centro
-    else {
+    } else {
       controls.start({ x: 0 });
     }
   };
 
-  // O clique normal no card usa o próprio evento do Framer Motion
-  // para garantir que não vai disparar se você estiver apenas arrastando.
   const handleSelectClick = () => {
-    controls.start({ x: 0 }); // Fecha a aba se estiver aberta
+    controls.start({ x: 0 });
     onSelect();
   };
 
@@ -106,19 +99,17 @@ function SwipeableProjectItem({
       {/* CAMADA DA FRENTE (A "Tampa" Sólida que é arrastada) */}
       <motion.div
         drag="x"
-        dragConstraints={{ left: -110, right: 65 }} // Limita até onde pode ser puxado
-        dragElastic={0.15} // Efeito de elástico na borda
+        dragConstraints={{ left: -110, right: 65 }}
+        dragElastic={0.15}
         dragDirectionLock
         animate={controls}
         onDragEnd={handleDragEnd}
         onClick={handleSelectClick}
         className={cn(
           "relative z-10 w-full flex items-center gap-4 p-4 text-left shadow-sm touch-pan-y cursor-grab active:cursor-grabbing rounded-xl border border-transparent",
-          // O truque crucial: o fundo TEM que ser sólido sempre!
           "bg-card",
         )}
       >
-        {/* Camada de cor para indicar seleção (fica acima do fundo sólido, mas abaixo do texto) */}
         {isSelected && (
           <div className="absolute inset-0 bg-primary/10 border border-primary rounded-xl pointer-events-none" />
         )}
@@ -161,6 +152,7 @@ export function ProjectSelectorSheet({
   onSelectProject,
   onNewProject,
 }: ProjectSelectorSheetProps) {
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<"active" | "archived">("active");
 
   const activeProjects = projects.filter((p) => p.status !== "ARCHIVED");
@@ -172,13 +164,11 @@ export function ProjectSelectorSheet({
   // CÉREBRO: Seleção Inteligente (Fallback)
   const handleSmartFallback = (actionTargetId: string) => {
     if (selectedProjectId === actionTargetId) {
-      // Pega todos os ativos exceto o que acabou de ser deletado/arquivado
       const remaining = activeProjects.filter((p) => p.id !== actionTargetId);
 
       if (remaining.length > 0) {
-        onSelectProject(remaining[0]); // Pula pro próximo!
+        onSelectProject(remaining[0]);
       } else {
-        // Se a lista zerou, envia um projeto mock vazio para o Dashboard resetar a tela
         onSelectProject({
           id: "mock-empty",
           name: "Sem Obras",
@@ -188,24 +178,47 @@ export function ProjectSelectorSheet({
     }
   };
 
-  const handleArchive = (e: React.MouseEvent, id: string) => {
+  // 1. CHAMA A API PARA ARQUIVAR
+  const handleArchive = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    alert(`Obra ${id} arquivada! (Falta API)`);
-    handleSmartFallback(id);
-  };
 
-  const handleDelete = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    if (confirm("Tem certeza? Esta ação ocultará a obra do seu painel.")) {
-      alert(`Obra ${id} ocultada com sucesso! (Falta API)`);
-      handleSmartFallback(id);
+    // Atualização otimista na tela (sensação de rapidez)
+    handleSmartFallback(id);
+
+    try {
+      await fetch(`/api/projects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ARCHIVED" }),
+      });
+      router.refresh();
+    } catch (error) {
+      console.error("Erro ao arquivar:", error);
     }
   };
 
+  // 2. CHAMA A API PARA EXCLUIR (SOFT DELETE)
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (confirm("Tem certeza? Esta ação ocultará a obra do seu painel.")) {
+      handleSmartFallback(id);
+
+      try {
+        await fetch(`/api/projects/${id}`, {
+          method: "DELETE",
+        });
+        router.refresh();
+      } catch (error) {
+        console.error("Erro ao deletar:", error);
+      }
+    }
+  };
+
+  // 3. NAVEGA PARA A EDIÇÃO
   const handleEdit = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    alert(`Abrindo formulário de edição para: ${id}`);
     onClose();
+    router.push(`/projects/${id}/edit`);
   };
 
   return (
@@ -247,7 +260,7 @@ export function ProjectSelectorSheet({
           </button>
         </div>
 
-        {/* Lista Arrastável (O overflow-x-hidden e touch-pan-y garantem o scroll perfeito) */}
+        {/* Lista Arrastável */}
         <div className="space-y-3 flex-1 overflow-y-auto min-h-50 overflow-x-hidden p-1 pb-4">
           {displayProjects.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
@@ -269,7 +282,7 @@ export function ProjectSelectorSheet({
                 isSelected={selectedProjectId === project.id}
                 onSelect={() => {
                   onSelectProject(project);
-                  onClose(); // Fecha a gaveta após escolher
+                  onClose();
                 }}
                 onEdit={(e) => handleEdit(e, project.id)}
                 onArchive={(e) => handleArchive(e, project.id)}

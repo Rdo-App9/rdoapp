@@ -12,19 +12,16 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  // 2. Busca no banco de dados QUAIS obras esse usuário tem acesso
   const userProjects = await prisma.project.findMany({
     where: {
-      members: {
-        some: {
-          userId: session.user.id,
-        },
-      },
+      members: { some: { userId: session.user.id } },
+      isActive: true, // Adicione esta linha para não carregar os excluídos!
     },
     select: {
       id: true,
       name: true,
       address: true,
+      status: true, // Adicionado para sabermos se está arquivado
     },
   });
 

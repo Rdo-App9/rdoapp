@@ -106,7 +106,8 @@ model Project {
   actualEndDate   DateTime?
   status          ProjectStatus @default(PLANNING)
   bimModelUrl     String?
-
+  
+  isActive        Boolean @default(true)
   mediaRetentionDays Int? 
 
   createdAt       DateTime      @default(now())
@@ -145,6 +146,7 @@ enum ProjectStatus {
   PAUSED
   COMPLETED
   CANCELLED
+  ARCHIVED
 }
 
 enum MemberRole {
