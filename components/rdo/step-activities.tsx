@@ -17,36 +17,45 @@ export function StepActivities({
   issues,
   setIssues,
 }: StepActivitiesProps) {
+  // Função auxiliar para juntar o texto antigo com o novo de forma elegante
+  const appendVoiceText = (prev: string, newText: string) => {
+    if (!prev.trim()) return newText;
+
+    // Se o texto anterior já termina com ponto, apenas dá espaço e continua
+    const hasEndingPunctuation = /[.!?]$/.test(prev.trim());
+    return prev + (hasEndingPunctuation ? " " : " ") + newText;
+  };
+
   return (
     <div className="space-y-6">
       <LargeTextarea
         label="Atividades Executadas"
-        placeholder="Descreva as atividades..."
+        placeholder="Diga: Fizemos a laje vírgula choveu muito ponto final"
         value={activities}
         onChange={(e) => setActivities(e.target.value)}
         showVoiceInput
         onVoiceResult={(text) =>
-          setActivities((prev) => prev + (prev ? " " : "") + text)
+          setActivities((prev) => appendVoiceText(prev, text))
         }
       />
       <LargeTextarea
         label="Observações Gerais"
-        placeholder="Observações relevantes..."
+        placeholder="O que mais o cliente precisa saber? (Dite ou digite)"
         value={observations}
         onChange={(e) => setObservations(e.target.value)}
         showVoiceInput
         onVoiceResult={(text) =>
-          setObservations((prev) => prev + (prev ? " " : "") + text)
+          setObservations((prev) => appendVoiceText(prev, text))
         }
       />
       <LargeTextarea
         label="Ocorrências / Problemas"
-        placeholder="Registe problemas ou atrasos..."
+        placeholder="Registre problemas ou atrasos..."
         value={issues}
         onChange={(e) => setIssues(e.target.value)}
         showVoiceInput
         onVoiceResult={(text) =>
-          setIssues((prev) => prev + (prev ? " " : "") + text)
+          setIssues((prev) => appendVoiceText(prev, text))
         }
       />
     </div>
