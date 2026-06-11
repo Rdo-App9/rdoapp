@@ -275,7 +275,6 @@ model Equipment {
   @@index([qrCode])
   @@index([barcode])
 }
-
 model EquipmentUsage {
   id             String @id @default(cuid())
   horimeterStart Float?
@@ -284,6 +283,7 @@ model EquipmentUsage {
   fuelConsumed   Float?
   operatorName   String?
   notes          String?
+  quantity       Int    @default(1) // <-- ADICIONE ESTA LINHA: Controla quantas ferramentas manuais foram usadas
 
   equipment   Equipment @relation(fields: [equipmentId], references: [id])
   equipmentId String
@@ -293,7 +293,6 @@ model EquipmentUsage {
   @@index([rdoId])
   @@index([equipmentId])
 }
-
 enum EquipmentStatus {
   AVAILABLE
   IN_USE

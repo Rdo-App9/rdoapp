@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       temperature,
       humidity,
       workforce,
-      equipment,
+      equipment, // Array vindo do front com type, quantity, etc.
       activities,
       observations,
       issues,
@@ -31,28 +31,63 @@ export async function POST(request: Request) {
       );
     }
 
-    // Busca o RDO mais recente dessa obra para gerar o próximo número sequencial
     const lastRDO = await prisma.rDO.findFirst({
       where: { projectId },
       orderBy: { number: "desc" },
     });
     const nextNumber = lastRDO ? lastRDO.number + 1 : 1;
 
-    // Transação no Banco: Salva o RDO e seus filhos
+    // 1. MAPEAMENTO SEGURO DE MÁQUINAS: Garante que os registros existam na tabela Equipment antes do uso
+    const equipmentUsageTransactions = await Promise.all(
+      equipment.map(async (eq: any) => {
+        // Tenta encontrar o equipamento pelo nome nessa obra ou cria um na hora de forma dinâmica
+        let dbEquipment = await prisma.equipment.findFirst({
+          where: { name: eq.name, projectId },
+        });
+
+        if (!dbEquipment) {
+          dbEquipment = await prisma.equipment.create({
+            data: {
+              name: eq.name,
+              type: eq.type, // MOTORIZED ou MANUAL
+              projectId,
+            },
+          });
+        }
+
+        // Retorna a estrutura correta de inserção do filho baseada no tipo
+        const isMotorized = eq.type === "MOTORIZED";
+        return {
+          equipmentId: dbEquipment.id,
+          horimeterStart: isMotorized ? parseFloat(eq.horimeterStart) : null,
+          horimeterEnd: isMotorized ? parseFloat(eq.horimeterEnd) : null,
+          hoursUsed: isMotorized
+            ? parseFloat(eq.horimeterEnd) - parseFloat(eq.horimeterStart)
+            : parseFloat(eq.hoursUsed),
+          quantity: isMotorized ? 1 : parseInt(eq.quantity), // Campo novo do passo 1
+          notes: isMotorized
+            ? "Uso de Maquinário com Horímetro"
+            : "Uso de Ferramenta Manual de Efetivo",
+        };
+      }),
+    );
+
+    // 2. CRIAÇÃO DO RDO COM AS TRANSAÇÕES RESOLVIDAS
     const newRDO = await prisma.rDO.create({
       data: {
         projectId,
-        createdById: session.user.id, // <-- Usamos createdById, que é o campo real do seu schema!
+        createdById: session.user.id,
         number: nextNumber,
         date: new Date(),
         status: signatureBase64 ? "SIGNED" : "DRAFT",
 
         weatherCondition: weatherCondition.toUpperCase(),
         temperature: temperature ? parseFloat(temperature) : null,
+        humidity: humidity ? parseFloat(humidity) : null,
 
         activities,
         observations,
-
+        issues,
         authorSignature: signatureBase64,
 
         workforce: {
@@ -61,15 +96,8 @@ export async function POST(request: Request) {
             quantity: parseInt(w.quantity),
           })),
         },
-        equipment: {
-          create: equipment.map((e: any) => ({
-            // Atenção: Se seu schema exigir que o equipmentId exista na tabela Equipment,
-            // a palavra "TEMPORARIO" pode dar erro. Se der, me avise para ajustarmos!
-            equipmentId: "TEMPORARIO",
-            name: e.name,
-            startTime: new Date(),
-            endTime: new Date(),
-          })),
+        equipmentUsage: {
+          create: equipmentUsageTransactions, // Insere a lista mapeada de forma limpa e atômica
         },
       },
     });

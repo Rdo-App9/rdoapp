@@ -1,5 +1,5 @@
-import { BoxIcon } from "@/components/ui/box-icon";
 import { Stepper } from "@/components/ui/stepper";
+import { Plus, Trash } from "@boxicons/react";
 
 interface WorkforceEntry {
   id: string;
@@ -31,46 +31,56 @@ export function StepWorkforce({
           onClick={onOpenAddSheet}
           className="flex items-center gap-2 px-3 h-8 rounded-md border border-input bg-transparent text-sm font-medium active:bg-secondary/50 transition-colors"
         >
-          <BoxIcon name="plus" size={16} />
+          <Plus pack="basic" width={16} height={16} />
           Adicionar
         </button>
       </div>
 
-      {workforce.map((worker) => (
-        <div
-          key={worker.id}
-          className="p-4 rounded-md border border-border bg-transparent"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-foreground">
-              {worker.category}
-            </span>
-            <button
-              type="button"
-              onClick={() => onRemoveWorker(worker.id)}
-              className="text-muted-foreground hover:text-destructive transition-colors p-1"
-            >
-              <BoxIcon name="trash" size={18} />
-            </button>
-          </div>
-          <Stepper
-            value={worker.quantity}
-            onChange={(qty) => onUpdateQuantity(worker.id, qty)}
-            min={0}
-            max={100}
-          />
+      {workforce.length === 0 ? (
+        <div className="p-6 text-center border border-dashed border-border rounded-xl bg-secondary/10">
+          <p className="text-sm text-muted-foreground">
+            Nenhum efetivo adicionado.
+          </p>
         </div>
-      ))}
+      ) : (
+        workforce.map((worker) => (
+          <div
+            key={worker.id}
+            className="p-4 rounded-xl border border-border bg-card shadow-sm"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-foreground">
+                {worker.category}
+              </span>
+              <button
+                type="button"
+                onClick={() => onRemoveWorker(worker.id)}
+                className="text-muted-foreground hover:text-destructive active:scale-95 transition-all p-1"
+              >
+                <Trash pack="basic" width={18} height={18} />
+              </button>
+            </div>
+            <Stepper
+              value={worker.quantity}
+              onChange={(qty) => onUpdateQuantity(worker.id, qty)}
+              min={0}
+              max={500}
+            />
+          </div>
+        ))
+      )}
 
-      <div className="p-3 rounded-md border border-dashed border-border bg-transparent text-center mt-6">
-        <p className="text-sm text-muted-foreground">
-          Total:{" "}
-          <span className="font-semibold text-foreground">
-            {workforce.reduce((sum, w) => sum + w.quantity, 0)}
-          </span>{" "}
-          trabalhadores
-        </p>
-      </div>
+      {workforce.length > 0 && (
+        <div className="p-3 rounded-xl border border-dashed border-border bg-transparent text-center mt-6">
+          <p className="text-sm text-muted-foreground">
+            Total:{" "}
+            <span className="font-semibold text-foreground">
+              {workforce.reduce((sum, w) => sum + w.quantity, 0)}
+            </span>{" "}
+            trabalhadores
+          </p>
+        </div>
+      )}
     </div>
   );
 }
