@@ -36,7 +36,7 @@ model User {
   company      Company?      @relation(fields: [companyId], references: [id])
   companyId    String?
   projects     ProjectMember[]
-  rdos         RDO[]
+  rdosCreated  RDO[]         @relation("RdoCreator") 
   photos       Photo[]
   signatures   Signature[]
   emergencies  Emergency[]
@@ -87,8 +87,8 @@ model Company {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users    User[]
-  projects Project[]
+  users     User[]
+  projects  Project[]
 }
 
 model Project {
@@ -164,7 +164,7 @@ enum MemberRole {
 model RDO {
   id               String            @id @default(cuid())
   date             DateTime          @default(now())
-  number           Int               // Número sequencial do RDO
+  number           Int              
   status           RDOStatus         @default(DRAFT)
   
   // Localização
@@ -189,6 +189,7 @@ model RDO {
   activities       String?           @db.Text
   observations     String?           @db.Text
   issues           String?           @db.Text
+  authorSignature  String?           @db.Text // Base64 ou URL da Assinatura
   
   // Metadados de sincronização offline
   localId          String?           @unique
@@ -199,7 +200,7 @@ model RDO {
   // Relacionamentos
   project        Project          @relation(fields: [projectId], references: [id])
   projectId      String
-  createdBy      User             @relation(fields: [createdById], references: [id])
+  createdBy      User             @relation("RdoCreator", fields: [createdById], references: [id])
   createdById    String
   workforce      Workforce[]
   equipmentUsage EquipmentUsage[]
@@ -464,15 +465,15 @@ enum EmergencyStatus {
 // ==========================================
 
 model SyncQueue {
-  id          String     @id @default(cuid())
-  entityType  String     // RDO, Photo, etc.
-  entityId    String     // ID local da entidade
-  action      SyncAction
-  payload     String     @db.Text
-  retryCount  Int        @default(0)
-  lastError   String?
-  status      SyncStatus @default(PENDING)
-  createdAt   DateTime   @default(now())
+  id         String     @id @default(cuid())
+  entityType String     // RDO, Photo, etc.
+  entityId   String     // ID local da entidade
+  action     SyncAction
+  payload    String     @db.Text
+  retryCount Int        @default(0)
+  lastError  String?
+  status     SyncStatus @default(PENDING)
+  createdAt  DateTime   @default(now())
   processedAt DateTime?
 
   @@index([status])

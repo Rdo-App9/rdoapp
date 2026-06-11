@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { BottomSheet, BottomSheetOption } from "@/components/ui/bottom-sheet";
 import { NetworkStatusIndicator } from "@/components/ui/network-status";
@@ -79,10 +79,15 @@ const defaultEquipmentCategories = [
   "Andaime Móvel",
 ];
 
-export default function NewRDOPage() {
+// 1. O Componente Principal com toda a lógica do formulário
+function NewRDOForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const projectId = searchParams.get("projectId");
+
   const [currentStep, setCurrentStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
 
   // Controles dos Bottom Sheets
   const [showWeatherSheet, setShowWeatherSheet] = useState(false);
@@ -90,11 +95,9 @@ export default function NewRDOPage() {
   const [showAddEquipmentSheet, setShowAddEquipmentSheet] = useState(false);
 
   // Estados Globais do RDO
-  const [rdoNumber] = useState(1); // Voltamos para o 1 por enquanto (o banco decidirá)
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
     null,
   );
-
   const [weather, setWeather] = useState<WeatherCondition>("sunny");
   const [temperature, setTemperature] = useState(28);
   const [humidity, setHumidity] = useState(65);
@@ -148,6 +151,7 @@ export default function NewRDOPage() {
     setWorkforce((prev) => [...prev, { id: uuidv4(), category, quantity: 1 }]);
     setShowAddWorkerSheet(false);
   };
+
   const removeWorkforce = (id: string) =>
     setWorkforce((prev) => prev.filter((w) => w.id !== id));
 
@@ -167,17 +171,24 @@ export default function NewRDOPage() {
     ]);
     setShowAddEquipmentSheet(false);
   };
+
   const removeEquipment = (id: string) =>
     setEquipment((prev) => prev.filter((e) => e.id !== id));
 
   // ==================== Salvar no Banco ====================
   const handleSave = async () => {
+    if (!projectId) {
+      alert("Erro crítico: Nenhuma obra selecionada para este RDO.");
+      return;
+    }
+
     setIsSaving(true);
+    setError("");
+
     try {
-      // Monta o pacote de dados exato que o Prisma precisa
       const payload = {
-        location,
-        weather,
+        projectId,
+        weatherCondition: weather,
         temperature,
         humidity,
         workforce,
@@ -185,16 +196,24 @@ export default function NewRDOPage() {
         activities,
         observations,
         issues,
-        signature,
+        signatureBase64: signature,
       };
 
-      console.log("RDO PRONTO PARA O BANCO:", payload);
+      const res = await fetch("/api/rdo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-      // TODO: Enviar o payload para /api/rdo/create
-      await new Promise((res) => setTimeout(res, 1000));
-      router.push("/dashboard");
-    } catch (error) {
-      console.error(error);
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "Falha ao salvar RDO.");
+
+      router.refresh();
+      router.push(`/dashboard`);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Ocorreu um erro na rede.");
     } finally {
       setIsSaving(false);
     }
@@ -270,6 +289,12 @@ export default function NewRDOPage() {
       </header>
 
       <main className="flex-1 px-6 pt-6 pb-28 overflow-y-auto flex flex-col">
+        {error && (
+          <div className="mb-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm font-medium">
+            {error}
+          </div>
+        )}
+
         <div className="flex-1">
           {currentStep === 0 && (
             <StepIdentification
@@ -351,7 +376,7 @@ export default function NewRDOPage() {
               disabled={!signature || isSaving}
               className="flex-2 h-12 rounded-md bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:pointer-events-none"
             >
-              {isSaving ? "A guardar..." : "Finalizar RDO"}
+              {isSaving ? "Salvando..." : "Finalizar RDO"}
             </button>
           )}
         </div>
@@ -420,5 +445,20 @@ export default function NewRDOPage() {
         </div>
       </BottomSheet>
     </div>
+  );
+}
+
+// 2. O Export Default oficial com a tag de Suspense (Obrigatória no Next 13+ ao ler URL)
+export default function NewRDOPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 flex items-center justify-center bg-background min-h-screen">
+          <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <NewRDOForm />
+    </Suspense>
   );
 }
