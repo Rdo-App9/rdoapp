@@ -39,17 +39,20 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
     STORMY: "Tempestade",
   };
 
-  const dataFormatada = new Date(rdo.date).toLocaleDateString("pt-BR", {
+  const dataReferencia = new Date(rdo.date).toLocaleDateString("pt-BR", {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
   });
 
+  // Captura a data e hora exata em que o botão de imprimir foi clicado
+  const dataImpressao = new Date().toLocaleString("pt-BR");
+
   return (
     <div className="bg-gray-100 min-h-screen flex items-start justify-center py-8 print:py-0 print:bg-white">
       {/* Container com proporção de Folha A4 */}
-      <div className="w-full max-w-[210mm] min-h-[297mm] bg-white text-black p-10 md:p-12 shadow-2xl print:shadow-none print:p-0">
+      <div className="w-full max-w-[210mm] min-h-[297mm] bg-white text-black p-10 md:p-12 shadow-2xl print:shadow-none print:p-0 relative">
         {/* CABEÇALHO DO DOCUMENTO */}
         <header className="border-b-2 border-black pb-4 mb-6 flex justify-between items-end">
           <div>
@@ -63,7 +66,7 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
               RDO N° {rdo.number.toString().padStart(4, "0")}
             </p>
             <p className="text-sm font-medium text-gray-600 capitalize mt-1">
-              {dataFormatada}
+              {dataReferencia}
             </p>
           </div>
         </header>
@@ -103,7 +106,7 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
           <h2 className="text-xs font-bold uppercase bg-gray-200 text-black px-2 py-1 mb-2 border border-black">
             Atividades Executadas
           </h2>
-          <div className="min-h-25 border border-black p-3 text-sm whitespace-pre-wrap leading-relaxed">
+          <div className="min-h-[100px] border border-black p-3 text-sm whitespace-pre-wrap leading-relaxed">
             {rdo.activities}
           </div>
         </section>
@@ -225,11 +228,9 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
             <img
               src={rdo.authorSignature}
               alt="Assinatura"
-              className="max-w-62.5 max-h-25 object-contain mb-2"
-              style={{
-                filter:
-                  "grayscale(100%) brightness(0) invert(1) drop-shadow(0 0 0 black)",
-              }} // Força a assinatura a ficar preta e nítida no PDF
+              className="max-w-[250px] max-h-[100px] object-contain mb-2"
+              // O brightness(0) obriga qualquer traço visível (branco, vermelho, azul) a ficar preto!
+              style={{ filter: "brightness(0)" }}
             />
           ) : (
             <div className="h-16 w-64 mb-4"></div>
@@ -243,9 +244,14 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
             </p>
           </div>
         </footer>
+
+        {/* DATA DE IMPRESSÃO - Fica no rodapé da folha */}
+        <div className="absolute bottom-6 left-0 right-0 text-center text-xs text-gray-400">
+          Documento gerado eletronicamente em: {dataImpressao}
+        </div>
       </div>
 
-      {/* Script Mágico: Chama a janela de impressão automaticamente ao carregar a página */}
+      {/* Aciona a janela de impressão automaticamente ao carregar */}
       <script
         dangerouslySetInnerHTML={{
           __html: `window.onload = function() { window.print(); }`,

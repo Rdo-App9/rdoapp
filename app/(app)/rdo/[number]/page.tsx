@@ -107,7 +107,7 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
           <div className="flex items-center gap-2">
             {/* BOTÃO CORRIGIDO: Agora ele abre a nova página A4 em outra aba */}
             <Link
-              href={`/rdo/${rdo.number}/print`}
+              href={`/print/rdo/${rdo.number}`}
               target="_blank"
               title="Gerar Documento PDF"
               className="w-10 h-10 rounded-xl border border-input bg-transparent flex items-center justify-center active:bg-secondary/50 transition-colors text-foreground hover:bg-secondary/20"
