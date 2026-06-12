@@ -54,9 +54,13 @@ const statusConfig: Record<RDOStatus, { label: string; color: string }> = {
 
 interface RDOListClientProps {
   initialRdos: RDO[];
+  projectId: string; // <-- ADICIONADO PARA AMARRAR O BOTÃO DE NOVO RDO
 }
 
-export default function RDOListClient({ initialRdos }: RDOListClientProps) {
+export default function RDOListClient({
+  initialRdos,
+  projectId,
+}: RDOListClientProps) {
   const router = useRouter();
   const [filter, setFilter] = useState<RDOStatus | "all">("all");
   const [showFilterSheet, setShowFilterSheet] = useState(false);
@@ -165,7 +169,8 @@ export default function RDOListClient({ initialRdos }: RDOListClientProps) {
           {filter === "all" ? "Filtrar" : statusConfig[filter].label}
         </button>
         <button
-          onClick={() => router.push("/rdo/new")}
+          // CORREÇÃO: O BOTÃO AGORA MANDA O ID DA OBRA NA URL!
+          onClick={() => router.push(`/rdo/new?projectId=${projectId}`)}
           className="flex items-center gap-2 px-4 h-10 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 active:scale-[0.98] transition-all"
         >
           <Plus pack="basic" width={18} height={18} />

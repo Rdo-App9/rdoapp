@@ -4,33 +4,69 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 import RDOListClient from "./rdo-list-client";
 
-export default async function RDOListPage() {
+interface PageProps {
+  searchParams: Promise<{ projectId?: string }>;
+}
+
+export default async function RDOListPage({ searchParams }: PageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
     redirect("/login");
   }
 
-  // Busca TODOS os RDOs que o usuário tem acesso (vinculados às obras dele)
-  const rdos = await prisma.rDO.findMany({
-    where: {
-      project: {
+  const resolvedParams = await searchParams;
+  let projectId = resolvedParams.projectId;
+
+  // 1. INTELIGÊNCIA: Se a URL não tem ID (ex: clicou no menu inferior),
+  // pegamos a primeira obra em que o usuário está cadastrado como membro!
+  if (!projectId) {
+    const firstProject = await prisma.project.findFirst({
+      where: {
         members: {
           some: {
             userId: session.user.id,
           },
         },
       },
-    },
-    orderBy: { date: "desc" },
-    include: {
-      workforce: true, // Para contar quantas pessoas trabalharam
+    });
+
+    if (!firstProject) {
+      // Se não faz parte de nenhuma obra, volta pro painel.
+      redirect("/dashboard");
+    }
+
+    projectId = firstProject.id;
+  }
+
+  // 2. SEGURANÇA CORRIGIDA: Verifica se ele realmente é membro da obra solicitada
+  const projectAccess = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      members: {
+        some: {
+          userId: session.user.id,
+        },
+      },
     },
   });
 
-  // Formata os dados para a interface
+  if (!projectAccess) {
+    // Tentou acessar obra de outro usuário
+    redirect("/dashboard");
+  }
+
+  // 3. Busca SOMENTE os RDOs desta obra validada
+  const rdos = await prisma.rDO.findMany({
+    where: { projectId: projectId },
+    orderBy: { date: "desc" },
+    include: {
+      workforce: true,
+    },
+  });
+
+  // 4. Formata os dados para o Client
   const formattedRdos = rdos.map((rdo) => {
-    // Calcula o total de pessoas na obra naquele dia
     const totalWorkforce = rdo.workforce.reduce(
       (acc, curr) => acc + curr.quantity,
       0,
@@ -39,7 +75,7 @@ export default async function RDOListPage() {
     return {
       id: rdo.id,
       number: rdo.number,
-      date: rdo.date.toISOString(), // O frontend cuida da formatação visual
+      date: rdo.date.toISOString(),
       status: rdo.status.toLowerCase() as
         | "draft"
         | "signed"
@@ -50,9 +86,12 @@ export default async function RDOListPage() {
         ? rdo.weatherCondition.replace("_", " ")
         : "Não informado",
       workforce: totalWorkforce,
-      syncStatus: rdo.syncedAt ? "synced" : "pending", // Lógica simples para o ícone de sincronização
+      syncStatus: (rdo.syncedAt ? "synced" : "pending") as
+        | "synced"
+        | "pending"
+        | "error",
     };
   });
 
-  return <RDOListClient initialRdos={formattedRdos as any} />;
+  return <RDOListClient initialRdos={formattedRdos} projectId={projectId} />;
 }
