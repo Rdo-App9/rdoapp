@@ -106,7 +106,7 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
           <h2 className="text-xs font-bold uppercase bg-gray-200 text-black px-2 py-1 mb-2 border border-black">
             Atividades Executadas
           </h2>
-          <div className="min-h-[100px] border border-black p-3 text-sm whitespace-pre-wrap leading-relaxed">
+          <div className="min-h-25 border border-black p-3 text-sm whitespace-pre-wrap leading-relaxed">
             {rdo.activities}
           </div>
         </section>
@@ -228,7 +228,7 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
             <img
               src={rdo.authorSignature}
               alt="Assinatura"
-              className="max-w-[250px] max-h-[100px] object-contain mb-2"
+              className="max-w-62.5 max-h-25 object-contain mb-2"
               // O brightness(0) obriga qualquer traço visível (branco, vermelho, azul) a ficar preto!
               style={{ filter: "brightness(0)" }}
             />

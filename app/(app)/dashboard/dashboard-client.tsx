@@ -24,7 +24,12 @@ import {
 interface DashboardClientProps {
   user: any;
   projects: Array<{ id: string; name: string; address: string | null }>;
-  initialRdos: Array<{ number: number; date: Date; status: string }>;
+  initialRdos: Array<{
+    id: string;
+    number: number;
+    date: Date;
+    status: string;
+  }>;
 }
 
 export default function DashboardClient({
@@ -230,7 +235,7 @@ export default function DashboardClient({
             ) : (
               initialRdos.map((rdo) => (
                 <button
-                  key={rdo.number}
+                  key={rdo.id || rdo.number} // <-- Usamos o ID único do banco
                   onClick={() => router.push(`/rdo/${rdo.number}`)}
                   className="w-full p-4 rounded-md border border-border bg-transparent flex items-center justify-between transition-all active:bg-secondary/50 active:scale-[0.99]"
                 >

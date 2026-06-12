@@ -31,6 +31,7 @@ export default async function DashboardPage() {
     orderBy: { date: "desc" },
     take: 3,
     select: {
+      id: true, // <-- CORREÇÃO: Agora o ID gigante e único vem junto!
       number: true,
       date: true,
       status: true,

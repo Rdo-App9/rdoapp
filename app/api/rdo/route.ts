@@ -11,13 +11,20 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+
+    // LOG 1: O QUE CHEGOU DO FRONTEND?
+    console.log("=========================================");
+    console.log("[RDO API] Dados recebidos do formulário:");
+    console.log("Equipamentos recebidos:", body.equipment);
+    console.log("=========================================");
+
     const {
       projectId,
       weatherCondition,
       temperature,
       humidity,
-      workforce,
-      equipment, // Array vindo do front com type, quantity, etc.
+      workforce = [],
+      equipment = [], // Array de equipamentos
       activities,
       observations,
       issues,
@@ -26,7 +33,7 @@ export async function POST(request: Request) {
 
     if (!projectId) {
       return NextResponse.json(
-        { error: "ID da Obra (projectId) é obrigatório." },
+        { error: "ID da Obra é obrigatório." },
         { status: 400 },
       );
     }
@@ -37,77 +44,99 @@ export async function POST(request: Request) {
     });
     const nextNumber = lastRDO ? lastRDO.number + 1 : 1;
 
-    // 1. MAPEAMENTO SEGURO DE MÁQUINAS: Garante que os registros existam na tabela Equipment antes do uso
+    // 1. PROCESSAR OS EQUIPAMENTOS (Salvar na Tabela Mestra se for novo)
     const equipmentUsageTransactions = await Promise.all(
       equipment.map(async (eq: any) => {
-        // Tenta encontrar o equipamento pelo nome nessa obra ou cria um na hora de forma dinâmica
+        // Tenta achar a máquina no inventário da obra
         let dbEquipment = await prisma.equipment.findFirst({
           where: { name: eq.name, projectId },
         });
 
+        // Se não achar, cria ela no banco agora mesmo
         if (!dbEquipment) {
           dbEquipment = await prisma.equipment.create({
             data: {
               name: eq.name,
-              type: eq.type, // MOTORIZED ou MANUAL
+              type: eq.type || "MOTORIZED",
               projectId,
             },
           });
+          console.log(
+            `[RDO API] Novo equipamento criado no inventário: ${dbEquipment.name}`,
+          );
         }
 
-        // Retorna a estrutura correta de inserção do filho baseada no tipo
         const isMotorized = eq.type === "MOTORIZED";
+
+        // Monta o objeto exato que vai pra tabela EquipmentUsage
         return {
-          equipmentId: dbEquipment.id,
-          horimeterStart: isMotorized ? parseFloat(eq.horimeterStart) : null,
-          horimeterEnd: isMotorized ? parseFloat(eq.horimeterEnd) : null,
+          equipmentId: dbEquipment.id, // Forçando o ID da máquina
+          horimeterStart: isMotorized
+            ? parseFloat(eq.horimeterStart || 0)
+            : null,
+          horimeterEnd: isMotorized ? parseFloat(eq.horimeterEnd || 0) : null,
           hoursUsed: isMotorized
-            ? parseFloat(eq.horimeterEnd) - parseFloat(eq.horimeterStart)
-            : parseFloat(eq.hoursUsed),
-          quantity: isMotorized ? 1 : parseInt(eq.quantity), // Campo novo do passo 1
-          notes: isMotorized
-            ? "Uso de Maquinário com Horímetro"
-            : "Uso de Ferramenta Manual de Efetivo",
+            ? parseFloat(eq.horimeterEnd || 0) -
+              parseFloat(eq.horimeterStart || 0)
+            : parseFloat(eq.hoursUsed || 8),
+          quantity: isMotorized ? 1 : parseInt(eq.quantity || 1),
+          notes: isMotorized ? "Uso de Maquinário" : "Ferramenta Manual",
         };
       }),
     );
 
-    // 2. CRIAÇÃO DO RDO COM AS TRANSAÇÕES RESOLVIDAS
+    // LOG 2: O QUE VAI PRO BANCO?
+    console.log("[RDO API] Lista processada para salvar no RDO:");
+    console.log(equipmentUsageTransactions);
+
+    // 2. SALVAR O RDO COM TUDO DENTRO
+    const rdoData: any = {
+      projectId,
+      createdById: session.user.id,
+      number: nextNumber,
+      date: new Date(),
+      status: signatureBase64 ? "SIGNED" : "DRAFT",
+      weatherCondition: weatherCondition?.toUpperCase() || "SUNNY",
+      temperature: temperature ? parseFloat(temperature) : null,
+      humidity: humidity ? parseFloat(humidity) : null,
+      activities,
+      observations,
+      issues,
+      authorSignature: signatureBase64,
+    };
+
+    if (workforce.length > 0) {
+      rdoData.workforce = {
+        create: workforce.map((w: any) => ({
+          category: w.category,
+          quantity: parseInt(w.quantity || 1),
+        })),
+      };
+    }
+
+    if (equipmentUsageTransactions.length > 0) {
+      rdoData.equipmentUsage = {
+        createMany: {
+          data: equipmentUsageTransactions,
+        },
+      };
+    }
+
     const newRDO = await prisma.rDO.create({
-      data: {
-        projectId,
-        createdById: session.user.id,
-        number: nextNumber,
-        date: new Date(),
-        status: signatureBase64 ? "SIGNED" : "DRAFT",
-
-        weatherCondition: weatherCondition.toUpperCase(),
-        temperature: temperature ? parseFloat(temperature) : null,
-        humidity: humidity ? parseFloat(humidity) : null,
-
-        activities,
-        observations,
-        issues,
-        authorSignature: signatureBase64,
-
-        workforce: {
-          create: workforce.map((w: any) => ({
-            category: w.category,
-            quantity: parseInt(w.quantity),
-          })),
-        },
-        equipmentUsage: {
-          create: equipmentUsageTransactions, // Insere a lista mapeada de forma limpa e atômica
-        },
-      },
+      data: rdoData,
     });
+
+    console.log(`[RDO API] RDO #${newRDO.number} criado com sucesso!`);
 
     return NextResponse.json(
       { message: "RDO salvo com sucesso!", rdo: newRDO },
       { status: 201 },
     );
   } catch (error: any) {
-    console.error("[RDO_CREATE_ERROR]:", error);
+    console.error("=========================================");
+    console.error("[RDO_CREATE_ERROR] FALHA AO SALVAR O RDO:");
+    console.error(error);
+    console.error("=========================================");
     return NextResponse.json(
       { error: "Erro interno ao salvar o RDO." },
       { status: 500 },

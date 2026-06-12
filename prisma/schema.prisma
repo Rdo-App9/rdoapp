@@ -275,6 +275,7 @@ model Equipment {
   @@index([qrCode])
   @@index([barcode])
 }
+
 model EquipmentUsage {
   id             String @id @default(cuid())
   horimeterStart Float?
