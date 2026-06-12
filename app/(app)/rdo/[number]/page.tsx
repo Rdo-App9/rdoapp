@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { DeleteRdoButton } from "@/components/rdo/delete-rdo-button";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -105,7 +106,14 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* BOTÃO CORRIGIDO: Agora ele abre a nova página A4 em outra aba */}
+            {/* BOTÃO DE EXCLUIR */}
+            <DeleteRdoButton
+              rdoId={rdo.id}
+              projectId={rdo.projectId}
+              rdoNumber={rdo.number}
+            />
+
+            {/* BOTÃO DE IMPRIMIR */}
             <Link
               href={`/print/rdo/${rdo.number}`}
               target="_blank"
@@ -309,11 +317,20 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
           <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider print:text-black">
             Responsável Técnico
           </p>
-          <div className="mt-4 flex items-center gap-1 text-sm text-muted-foreground print:text-black">
-            <GlobeAmericas pack="basic" width={16} height={16} />
-            <p>
-              {rdo.project?.address || "Localização da obra não cadastrada"}
-            </p>
+
+          {/* EXIBIÇÃO DO ENDEREÇO E COORDENADAS GPS */}
+          <div className="mt-4 flex flex-col items-center gap-1 text-sm text-muted-foreground print:text-black">
+            <div className="flex items-center gap-1">
+              <GlobeAmericas pack="basic" width={16} height={16} />
+              <p>
+                {rdo.project?.address || "Localização da obra não cadastrada"}
+              </p>
+            </div>
+            {rdo.latitude && rdo.longitude && (
+              <p className="text-xs opacity-75">
+                GPS: {rdo.latitude.toFixed(6)}, {rdo.longitude.toFixed(6)}
+              </p>
+            )}
           </div>
         </section>
       </main>

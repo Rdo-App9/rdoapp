@@ -94,7 +94,6 @@ function NewRDOForm() {
   );
   const [newCategoryName, setNewCategoryName] = useState("");
 
-  // Lista de equipamentos com suporte a tipo estruturado
   const [equipmentCategories, setEquipmentCategories] = useState<
     EquipmentCategory[]
   >([]);
@@ -181,7 +180,6 @@ function NewRDOForm() {
     const trimmed = newEquipmentName.trim();
     if (!trimmed) return;
 
-    // Evita duplicados por nome
     if (
       equipmentCategories.some(
         (e) => e.name.toLowerCase() === trimmed.toLowerCase(),
@@ -258,8 +256,11 @@ function NewRDOForm() {
         weatherCondition: weather,
         temperature,
         humidity,
+        // CORREÇÃO: Enviando as coordenadas (se existirem)
+        latitude: location?.lat || null,
+        longitude: location?.lng || null,
         workforce,
-        equipment, // Enviando a lista tipada completa para a API
+        equipment,
         activities,
         observations,
         issues,

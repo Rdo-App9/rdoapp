@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     // LOG 1: O QUE CHEGOU DO FRONTEND?
     console.log("=========================================");
     console.log("[RDO API] Dados recebidos do formulário:");
+    console.log("GPS recebido:", body.latitude, body.longitude);
     console.log("Equipamentos recebidos:", body.equipment);
     console.log("=========================================");
 
@@ -23,6 +24,8 @@ export async function POST(request: Request) {
       weatherCondition,
       temperature,
       humidity,
+      latitude, // <-- RECEBENDO A LATITUDE
+      longitude, // <-- RECEBENDO A LONGITUDE
       workforce = [],
       equipment = [], // Array de equipamentos
       activities,
@@ -99,6 +102,8 @@ export async function POST(request: Request) {
       weatherCondition: weatherCondition?.toUpperCase() || "SUNNY",
       temperature: temperature ? parseFloat(temperature) : null,
       humidity: humidity ? parseFloat(humidity) : null,
+      latitude: latitude ? parseFloat(latitude) : null, // <-- SALVANDO NO BANCO
+      longitude: longitude ? parseFloat(longitude) : null, // <-- SALVANDO NO BANCO
       activities,
       observations,
       issues,
