@@ -33,16 +33,16 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
 
   const weatherMap: Record<string, string> = {
     SUNNY: "Ensolarado",
-    PARTLY_CLOUDY: "Parcialmente Nublado",
+    PARTLY_CLOUDY: "Parc. Nublado",
     CLOUDY: "Nublado",
     RAINY: "Chuvoso",
     STORMY: "Tempestade",
   };
 
   const dataReferencia = new Date(rdo.date).toLocaleDateString("pt-BR", {
-    weekday: "long",
+    weekday: "short",
     year: "numeric",
-    month: "long",
+    month: "numeric",
     day: "numeric",
   });
 
@@ -52,98 +52,108 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
   return (
     <div className="bg-gray-100 min-h-screen flex items-start justify-center py-8 print:py-0 print:bg-white">
       {/* Container com proporção de Folha A4 */}
-      <div className="w-full max-w-[210mm] min-h-[297mm] bg-white text-black p-10 md:p-12 shadow-2xl print:shadow-none print:p-0 relative">
+      <div className="w-full max-w-[210mm] min-h-[297mm] bg-white text-black p-8 shadow-2xl print:shadow-none print:p-0 relative text-[13px] font-sans">
         {/* CABEÇALHO DO DOCUMENTO */}
-        <header className="border-b-2 border-black pb-4 mb-6 flex justify-between items-end">
+        <header className="border-b-2 border-black pb-3 mb-4 flex justify-between items-end">
           <div>
-            <h1 className="text-2xl font-bold uppercase tracking-tight">
+            <h1 className="text-xl font-black uppercase tracking-tight">
               Relatório Diário de Obra
             </h1>
-            <p className="text-lg font-medium mt-1">{rdo.project.name}</p>
+            <p className="text-base font-bold mt-1 text-gray-800">
+              {rdo.project.name}
+            </p>
           </div>
           <div className="text-right">
-            <p className="text-xl font-bold text-gray-800">
-              RDO N° {rdo.number.toString().padStart(4, "0")}
+            <p className="text-lg font-black text-black">
+              RDO Nº {rdo.number.toString().padStart(4, "0")}
             </p>
-            <p className="text-sm font-medium text-gray-600 capitalize mt-1">
-              {dataReferencia}
+            <p className="font-semibold text-gray-700 capitalize mt-1">
+              Data: {dataReferencia}
             </p>
           </div>
         </header>
 
-        {/* INFORMAÇÕES GERAIS */}
-        <section className="mb-6 grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="font-bold uppercase text-gray-600 text-xs">
+        {/* INFORMAÇÕES GERAIS COMPACTAS COM GPS */}
+        <section className="mb-6 grid grid-cols-12 gap-4 border border-black p-3 bg-gray-50/50">
+          <div className="col-span-12 md:col-span-6">
+            <p className="font-bold uppercase text-[10px] text-gray-500 mb-0.5">
               Endereço da Obra
             </p>
-            <p className="font-medium">
+            <p className="font-bold leading-tight">
               {rdo.project.address || "Não cadastrado"}
             </p>
+            {rdo.latitude && rdo.longitude && (
+              <p className="text-[11px] font-mono text-gray-600 mt-1">
+                GPS: {rdo.latitude.toFixed(6)}, {rdo.longitude.toFixed(6)}
+              </p>
+            )}
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="font-bold uppercase text-gray-600 text-xs">Clima</p>
-              <p className="font-medium">
-                {rdo.weatherCondition
-                  ? weatherMap[rdo.weatherCondition] || rdo.weatherCondition
-                  : "N/I"}
-              </p>
-            </div>
-            <div>
-              <p className="font-bold uppercase text-gray-600 text-xs">
-                Temperatura
-              </p>
-              <p className="font-medium">
-                {rdo.temperature !== null ? `${rdo.temperature}°C` : "N/I"}
-              </p>
-            </div>
+          <div className="col-span-6 md:col-span-3 border-t border-gray-300 pt-2 md:border-t-0 md:pt-0 md:border-l md:pl-3">
+            <p className="font-bold uppercase text-[10px] text-gray-500 mb-0.5">
+              Clima / Tempo
+            </p>
+            <p className="font-bold">
+              {rdo.weatherCondition
+                ? weatherMap[rdo.weatherCondition] || rdo.weatherCondition
+                : "N/I"}
+            </p>
+          </div>
+          <div className="col-span-6 md:col-span-3 border-t border-gray-300 pt-2 md:border-t-0 md:pt-0 md:border-l md:pl-3">
+            <p className="font-bold uppercase text-[10px] text-gray-500 mb-0.5">
+              Temperatura
+            </p>
+            <p className="font-bold">
+              {rdo.temperature !== null ? `${rdo.temperature}°C` : "N/I"}
+            </p>
           </div>
         </section>
 
         {/* ATIVIDADES */}
-        <section className="mb-8">
-          <h2 className="text-xs font-bold uppercase bg-gray-200 text-black px-2 py-1 mb-2 border border-black">
+        <section className="mb-6">
+          <h2 className="text-[11px] font-black uppercase bg-black text-white px-2 py-1 inline-block">
             Atividades Executadas
           </h2>
-          <div className="min-h-25 border border-black p-3 text-sm whitespace-pre-wrap leading-relaxed">
+          <div className="min-h-[80px] border border-black p-3 text-[13px] whitespace-pre-wrap leading-snug font-medium">
             {rdo.activities}
           </div>
         </section>
 
-        {/* EFETIVO E EQUIPAMENTOS (Lado a Lado) */}
-        <div className="grid grid-cols-2 gap-6 mb-8">
+        {/* EFETIVO E EQUIPAMENTOS (Lado a Lado para poupar espaço) */}
+        <div className="grid grid-cols-2 gap-6 mb-6">
           {/* Mão de Obra */}
           <section>
-            <h2 className="text-xs font-bold uppercase bg-gray-200 text-black px-2 py-1 mb-2 border border-black">
+            <h2 className="text-[11px] font-black uppercase bg-black text-white px-2 py-1 inline-block">
               Efetivo de Pessoal
             </h2>
-            <table className="w-full text-sm border-collapse border border-black">
+            <table className="w-full border-collapse border border-black mt-[-1px]">
               <thead>
-                <tr className="border-b border-black">
-                  <th className="text-left p-2 border-r border-black font-semibold">
+                <tr className="bg-gray-100 border-b border-black text-[11px]">
+                  <th className="text-left p-1.5 border-r border-black uppercase">
                     Função
                   </th>
-                  <th className="text-center p-2 font-semibold w-16">Qtd</th>
+                  <th className="text-center p-1.5 uppercase w-12">Qtd</th>
                 </tr>
               </thead>
               <tbody>
                 {rdo.workforce.length === 0 ? (
                   <tr>
-                    <td colSpan={2} className="p-2 text-center text-gray-500">
-                      Nenhum registro
+                    <td
+                      colSpan={2}
+                      className="p-2 text-center text-gray-500 italic text-xs"
+                    >
+                      Sem registros
                     </td>
                   </tr>
                 ) : (
                   rdo.workforce.map((worker) => (
                     <tr
                       key={worker.id}
-                      className="border-b border-gray-300 last:border-b-0"
+                      className="border-b border-gray-300 last:border-b-0 text-[12px]"
                     >
-                      <td className="p-2 border-r border-black">
+                      <td className="p-1.5 border-r border-black font-semibold">
                         {worker.category}
                       </td>
-                      <td className="p-2 text-center font-bold">
+                      <td className="p-1.5 text-center font-bold">
                         {worker.quantity}
                       </td>
                     </tr>
@@ -155,38 +165,41 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
 
           {/* Equipamentos */}
           <section>
-            <h2 className="text-xs font-bold uppercase bg-gray-200 text-black px-2 py-1 mb-2 border border-black">
-              Equipamentos e Ferramentas
+            <h2 className="text-[11px] font-black uppercase bg-black text-white px-2 py-1 inline-block">
+              Máquinas e Ferramentas
             </h2>
-            <table className="w-full text-sm border-collapse border border-black">
+            <table className="w-full border-collapse border border-black mt-[-1px]">
               <thead>
-                <tr className="border-b border-black">
-                  <th className="text-left p-2 border-r border-black font-semibold">
+                <tr className="bg-gray-100 border-b border-black text-[11px]">
+                  <th className="text-left p-1.5 border-r border-black uppercase">
                     Item
                   </th>
-                  <th className="text-center p-2 font-semibold w-24">Uso</th>
+                  <th className="text-center p-1.5 uppercase w-16">Uso</th>
                 </tr>
               </thead>
               <tbody>
                 {rdo.equipmentUsage.length === 0 ? (
                   <tr>
-                    <td colSpan={2} className="p-2 text-center text-gray-500">
-                      Nenhum registro
+                    <td
+                      colSpan={2}
+                      className="p-2 text-center text-gray-500 italic text-xs"
+                    >
+                      Sem registros
                     </td>
                   </tr>
                 ) : (
                   rdo.equipmentUsage.map((usage) => (
                     <tr
                       key={usage.id}
-                      className="border-b border-gray-300 last:border-b-0"
+                      className="border-b border-gray-300 last:border-b-0 text-[12px]"
                     >
-                      <td className="p-2 border-r border-black">
+                      <td className="p-1.5 border-r border-black font-semibold">
                         {usage.equipment.name}
                       </td>
-                      <td className="p-2 text-center">
+                      <td className="p-1.5 text-center font-bold">
                         {usage.equipment.type === "MOTORIZED"
-                          ? `${usage.hoursUsed} h`
-                          : `${usage.quantity} un`}
+                          ? `${usage.hoursUsed}h`
+                          : `${usage.quantity}x`}
                       </td>
                     </tr>
                   ))
@@ -198,23 +211,23 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
 
         {/* OBSERVAÇÕES E OCORRÊNCIAS */}
         {(rdo.observations || rdo.issues) && (
-          <section className="mb-8 space-y-4">
+          <section className="mb-6 space-y-3">
             {rdo.observations && (
               <div>
-                <h2 className="text-xs font-bold uppercase bg-gray-200 text-black px-2 py-1 mb-2 border border-black">
+                <h2 className="text-[10px] font-black uppercase text-gray-600 mb-0.5">
                   Observações Gerais
                 </h2>
-                <div className="border border-black p-3 text-sm whitespace-pre-wrap">
+                <div className="border border-gray-400 p-2 text-xs whitespace-pre-wrap leading-tight">
                   {rdo.observations}
                 </div>
               </div>
             )}
             {rdo.issues && (
               <div>
-                <h2 className="text-xs font-bold uppercase bg-red-100 text-red-900 px-2 py-1 mb-2 border border-red-900">
-                  Ocorrências e Atrasos
+                <h2 className="text-[10px] font-black uppercase text-red-600 mb-0.5">
+                  Ocorrências / Atrasos
                 </h2>
-                <div className="border border-red-900 p-3 text-sm text-red-900 whitespace-pre-wrap">
+                <div className="border border-red-600 p-2 text-xs text-red-700 whitespace-pre-wrap leading-tight">
                   {rdo.issues}
                 </div>
               </div>
@@ -222,36 +235,35 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
           </section>
         )}
 
-        {/* RODAPÉ E ASSINATURA */}
-        <footer className="mt-16 pt-8 flex flex-col items-center justify-center break-inside-avoid">
+        {/* ASSINATURA (Rodapé Limpo) */}
+        <footer className="mt-auto pt-8 flex flex-col items-center justify-center break-inside-avoid">
           {rdo.authorSignature ? (
             <img
               src={rdo.authorSignature}
               alt="Assinatura"
-              className="max-w-62.5 max-h-25 object-contain mb-2"
-              // O brightness(0) obriga qualquer traço visível (branco, vermelho, azul) a ficar preto!
+              className="max-w-[200px] max-h-[80px] object-contain mb-1"
               style={{ filter: "brightness(0)" }}
             />
           ) : (
-            <div className="h-16 w-64 mb-4"></div>
+            <div className="h-16 w-48 mb-2"></div>
           )}
-          <div className="w-72 border-t border-black pt-2 text-center">
-            <p className="font-bold text-base">
+          <div className="w-64 border-t border-black pt-1 text-center">
+            <p className="font-bold text-[13px]">
               {rdo.createdBy?.name || "Engenheiro Responsável"}
             </p>
-            <p className="text-xs text-gray-600 uppercase mt-1">
+            <p className="text-[10px] font-bold text-gray-500 uppercase mt-0.5">
               Responsável Técnico / Emissor
             </p>
           </div>
         </footer>
 
-        {/* DATA DE IMPRESSÃO - Fica no rodapé da folha */}
-        <div className="absolute bottom-6 left-0 right-0 text-center text-xs text-gray-400">
-          Documento gerado eletronicamente em: {dataImpressao}
+        {/* DATA DE IMPRESSÃO (Cantinho) */}
+        <div className="absolute bottom-6 left-8 right-8 flex justify-between text-[9px] text-gray-400 border-t border-gray-200 pt-1 print:bottom-0">
+          <span>Sistema RDO v1.0</span>
+          <span>Gerado em: {dataImpressao}</span>
         </div>
       </div>
 
-      {/* Aciona a janela de impressão automaticamente ao carregar */}
       <script
         dangerouslySetInnerHTML={{
           __html: `window.onload = function() { window.print(); }`,
