@@ -18,8 +18,8 @@ export const metadata: Metadata = {
   keywords: ["obra", "rdo", "construção", "gestão", "canteiro"],
   authors: [{ name: "RdoApp" }],
   icons: {
-    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
-    apple: "/apple-icon.png",
+    icon: [{ url: "/favicon.ico?v=1", type: "image/x-icon" }],
+    apple: "/apple-touch-icon.png?v=1",
   },
   appleWebApp: {
     capable: true,
