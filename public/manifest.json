@@ -1,0 +1,22 @@
+{
+  "name": "Rdo App - Gestão de Obras",
+  "short_name": "Rdo App",
+  "description": "Relatório Diário de Obra Inteligente",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

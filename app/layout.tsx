@@ -18,15 +18,12 @@ export const metadata: Metadata = {
   keywords: ["obra", "rdo", "construção", "gestão", "canteiro"],
   authors: [{ name: "RdoApp" }],
   icons: {
-    icon: [
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
-    ],
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
     apple: "/apple-icon.png",
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "black-translucent", // Deixa a barra superior do iOS integrada ao app dark
     title: "RdoApp",
   },
   formatDetection: {
@@ -39,8 +36,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  viewportFit: "cover",
-  themeColor: "#0a0a0a",
+  viewportFit: "cover", // Essencial para o pt-safe funcionar em iPhones com notch
+  themeColor: "#0a0a0a", // Mantendo o tom dark original do seu app
 };
 
 export default function RootLayout({
@@ -54,11 +51,6 @@ export default function RootLayout({
       className={`${inter.variable} dark`}
       suppressHydrationWarning
     >
-      <head>
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="mobile-web-app-capable" content="yes" />
-      </head>
       <body className="font-sans antialiased bg-background min-h-screen">
         <ThemeProvider
           attribute="class"

@@ -99,14 +99,6 @@ export default function LoginPage() {
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 z-10">
         {/* Logo e Cabeçalho */}
         <div className="w-full max-w-md mb-8 flex flex-col items-center">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 shadow-sm border border-primary/20">
-            <HardHat
-              pack="basic"
-              width={32}
-              height={32}
-              className="text-primary"
-            />
-          </div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">
             Rdo App
           </h1>

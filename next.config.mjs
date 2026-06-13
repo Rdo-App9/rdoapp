@@ -1,3 +1,11 @@
+import withPWAInit from "@ducanh2912/next-pwa";
+
+const withPWA = withPWAInit({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development", // Desativa no ambiente de dev para não atrapalhar com cache antigo
+  register: true,
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
@@ -5,7 +13,13 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**", // Permite carregar fotos de qualquer domínio seguro (Cloudflare R2)
+      },
+    ],
   },
-}
+};
 
-export default nextConfig
+export default withPWA(nextConfig);
