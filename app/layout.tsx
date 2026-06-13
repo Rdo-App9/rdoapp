@@ -18,12 +18,12 @@ export const metadata: Metadata = {
   keywords: ["obra", "rdo", "construção", "gestão", "canteiro"],
   authors: [{ name: "RdoApp" }],
   icons: {
-    icon: [{ url: "/favicon.ico?v=1", type: "image/x-icon" }],
-    apple: "/apple-touch-icon.png?v=1",
+    icon: [{ url: "/favicon.ico?v=2", type: "image/x-icon" }],
+    apple: "/apple-touch-icon.png?v=2",
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent", // Deixa a barra superior do iOS integrada ao app dark
+    statusBarStyle: "black-translucent",
     title: "RdoApp",
   },
   formatDetection: {
@@ -36,8 +36,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  viewportFit: "cover", // Essencial para o pt-safe funcionar em iPhones com notch
-  themeColor: "#0a0a0a", // Mantendo o tom dark original do seu app
+  viewportFit: "cover",
+  themeColor: "#0a0a0a",
 };
 
 export default function RootLayout({
