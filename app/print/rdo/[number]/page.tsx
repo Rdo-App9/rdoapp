@@ -1,3 +1,4 @@
+// app/print/rdo/[number]/page.tsx
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -16,6 +17,7 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
 
   if (isNaN(rdoNumber)) redirect("/rdo");
 
+  // NOVO: Adicionado 'photos' no 'include'
   const rdo = await prisma.rDO.findFirst({
     where: {
       number: rdoNumber,
@@ -26,6 +28,9 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
       workforce: true,
       equipmentUsage: { include: { equipment: true } },
       createdBy: true,
+      photos: {
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 
@@ -46,12 +51,10 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
     day: "numeric",
   });
 
-  // Captura a data e hora exata em que o botão de imprimir foi clicado
   const dataImpressao = new Date().toLocaleString("pt-BR");
 
   return (
     <div className="bg-gray-100 min-h-screen flex items-start justify-center py-8 print:py-0 print:bg-white">
-      {/* Container com proporção de Folha A4 */}
       <div className="w-full max-w-[210mm] min-h-[297mm] bg-white text-black p-8 shadow-2xl print:shadow-none print:p-0 relative text-[13px] font-sans">
         {/* CABEÇALHO DO DOCUMENTO */}
         <header className="border-b-2 border-black pb-3 mb-4 flex justify-between items-end">
@@ -118,7 +121,7 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
           </div>
         </section>
 
-        {/* EFETIVO E EQUIPAMENTOS (Lado a Lado para poupar espaço) */}
+        {/* EFETIVO E EQUIPAMENTOS */}
         <div className="grid grid-cols-2 gap-6 mb-6">
           {/* Mão de Obra */}
           <section>
@@ -235,8 +238,44 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
           </section>
         )}
 
+        {/* ========================================== */}
+        {/* NOVO: RELATÓRIO FOTOGRÁFICO NO PDF         */}
+        {/* ========================================== */}
+        {rdo.photos && rdo.photos.length > 0 && (
+          <section className="mt-8 print:break-before-page">
+            <h2 className="text-[14px] font-black uppercase border-b-2 border-black pb-2 mb-4 text-center">
+              Anexo Fotográfico
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              {rdo.photos.map((photo) => (
+                <div
+                  key={photo.id}
+                  className="border border-black p-2 flex flex-col items-center"
+                >
+                  <div className="w-full aspect-video border border-gray-300 mb-2 overflow-hidden flex items-center justify-center">
+                    <img
+                      src={photo.url}
+                      alt="Registro fotográfico"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
+                  <div className="text-center w-full">
+                    <p className="font-bold uppercase text-[10px] tracking-widest bg-gray-100 py-1 mb-1 border-t border-b border-black">
+                      {photo.category}
+                    </p>
+                    <p className="text-[10px] text-gray-600 font-medium">
+                      Registrado em:{" "}
+                      {new Date(photo.createdAt).toLocaleString("pt-BR")}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* ASSINATURA (Rodapé Limpo) */}
-        <footer className="mt-auto pt-8 flex flex-col items-center justify-center break-inside-avoid">
+        <footer className="mt-12 pt-8 flex flex-col items-center justify-center break-inside-avoid">
           {rdo.authorSignature ? (
             <img
               src={rdo.authorSignature}

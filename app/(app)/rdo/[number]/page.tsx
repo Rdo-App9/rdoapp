@@ -14,8 +14,8 @@ import {
   InfoCircle,
   Printer,
   GlobeAmericas,
+  Camera,
 } from "@boxicons/react";
-import { NetworkStatusIndicator } from "@/components/ui/network-status";
 
 interface RDODetailsProps {
   params: Promise<{ number: string }>;
@@ -34,7 +34,7 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
     redirect("/rdo");
   }
 
-  // Busca o RDO e INCLUI o usuário que o criou (createdBy)
+  // Busca o RDO e INCLUI as fotos vinculadas
   const rdo = await prisma.rDO.findFirst({
     where: {
       number: rdoNumber,
@@ -50,7 +50,10 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
       equipmentUsage: {
         include: { equipment: true },
       },
-      createdBy: true, // Puxando os dados do Engenheiro/Usuário
+      createdBy: true,
+      photos: {
+        orderBy: { createdAt: "asc" }, // Puxa as fotos em ordem cronológica
+      },
     },
   });
 
@@ -115,20 +118,17 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* BOTÃO DE ANEXAR FOTOS */}
             <AttachPhotosButton
               rdoId={rdo.id}
               unlinkedPhotos={unlinkedPhotos}
             />
 
-            {/* BOTÃO DE EXCLUIR */}
             <DeleteRdoButton
               rdoId={rdo.id}
               projectId={rdo.projectId}
               rdoNumber={rdo.number}
             />
 
-            {/* BOTÃO DE IMPRIMIR */}
             <Link
               href={`/print/rdo/${rdo.number}`}
               target="_blank"
@@ -143,7 +143,6 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
 
       {/* CONTEÚDO PRINCIPAL */}
       <main className="flex-1 px-6 py-6 overflow-y-auto space-y-6 pb-24 print:pb-0 print:p-8">
-        {/* Título visível apenas na impressão */}
         <div className="hidden print:block text-center mb-8 border-b-2 border-black pb-4">
           <h1 className="text-2xl font-bold uppercase">
             Relatório Diário de Obra (RDO)
@@ -151,7 +150,6 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
           <p className="text-lg mt-1">{rdo.project.name}</p>
         </div>
 
-        {/* Cabeçalho do Documento */}
         <div className="p-5 rounded-2xl border border-border bg-card shadow-sm print:shadow-none print:border-black print:rounded-none">
           <div className="flex justify-between items-start mb-4">
             <div>
@@ -202,7 +200,6 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
           </div>
         </div>
 
-        {/* Atividades Executadas */}
         <section className="print:break-inside-avoid">
           <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3 print:text-black">
             Atividades do Dia
@@ -214,7 +211,6 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
           </div>
         </section>
 
-        {/* Mão de Obra */}
         <section className="print:break-inside-avoid">
           <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2 print:text-black">
             <User pack="basic" width={18} height={18} /> Efetivo de Pessoal
@@ -244,7 +240,6 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
           </div>
         </section>
 
-        {/* Equipamentos */}
         <section className="print:break-inside-avoid">
           <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2 print:text-black">
             <Spanner pack="basic" width={18} height={18} /> Máquinas e
@@ -281,7 +276,6 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
           </div>
         </section>
 
-        {/* Observações e Ocorrências */}
         {(rdo.observations || rdo.issues) && (
           <section className="grid gap-6 print:break-inside-avoid">
             {rdo.observations && (
@@ -311,7 +305,48 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
           </section>
         )}
 
-        {/* ASSINATURA E IDENTIFICAÇÃO (RODAPÉ) */}
+        {/* ========================================== */}
+        {/* NOVO: SEÇÃO DE FOTOS (RELATÓRIO FOTOGRÁFICO) */}
+        {/* ========================================== */}
+        {rdo.photos && rdo.photos.length > 0 && (
+          <section className="mt-8 print:break-before-page">
+            <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2 print:text-black">
+              <Camera pack="basic" width={18} height={18} /> Relatório
+              Fotográfico
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 print:grid-cols-2 print:gap-6">
+              {rdo.photos.map((photo) => (
+                <div
+                  key={photo.id}
+                  className="flex flex-col gap-2 rounded-xl overflow-hidden border border-border p-2 bg-card print:border-black print:rounded-none print:bg-transparent"
+                >
+                  <div className="aspect-square rounded-lg overflow-hidden border border-border print:border-black print:rounded-none">
+                    <img
+                      src={photo.url}
+                      alt="Foto anexada"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="px-1 text-xs text-muted-foreground print:text-black">
+                    <span className="font-bold text-foreground uppercase tracking-wider print:text-black">
+                      {photo.category}
+                    </span>
+                    <p className="mt-0.5">
+                      {new Date(photo.createdAt).toLocaleString("pt-BR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="mt-12 pt-10 border-t-2 border-border print:border-black flex flex-col items-center justify-center print:break-inside-avoid">
           {rdo.authorSignature ? (
             <img
@@ -333,7 +368,6 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
             Responsável Técnico
           </p>
 
-          {/* EXIBIÇÃO DO ENDEREÇO E COORDENADAS GPS */}
           <div className="mt-4 flex flex-col items-center gap-1 text-sm text-muted-foreground print:text-black">
             <div className="flex items-center gap-1">
               <GlobeAmericas pack="basic" width={16} height={16} />
