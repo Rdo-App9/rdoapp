@@ -164,7 +164,9 @@ export default function DashboardClient({
               Novo RDO
             </button>
             <button
-              onClick={() => router.push("/camera")}
+              onClick={() =>
+                router.push(`/camera?projectId=${selectedProject.id}`)
+              }
               disabled={!hasRealProjects}
               className="lg:hidden flex items-center justify-center h-12 px-4 rounded-md border border-input bg-transparent text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none"
             >

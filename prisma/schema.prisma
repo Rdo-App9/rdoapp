@@ -197,16 +197,15 @@ model RDO {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  // Relacionamentos
+// Relacionamentos
   project        Project          @relation(fields: [projectId], references: [id])
   projectId      String
   createdBy      User             @relation("RdoCreator", fields: [createdById], references: [id])
   createdById    String
   workforce      Workforce[]
   equipmentUsage EquipmentUsage[]
-  photos         Photo[]
+  photos         Photo[]         
   signatures     Signature[]
-
   @@unique([projectId, number])
   @@index([projectId, date])
   @@index([createdById])
@@ -492,3 +491,4 @@ enum SyncStatus {
   COMPLETED
   FAILED
 }
+

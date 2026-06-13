@@ -113,7 +113,7 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
           <h2 className="text-[11px] font-black uppercase bg-black text-white px-2 py-1 inline-block">
             Atividades Executadas
           </h2>
-          <div className="min-h-[80px] border border-black p-3 text-[13px] whitespace-pre-wrap leading-snug font-medium">
+          <div className="min-h-20 border border-black p-3 text-[13px] whitespace-pre-wrap leading-snug font-medium">
             {rdo.activities}
           </div>
         </section>
@@ -125,7 +125,7 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
             <h2 className="text-[11px] font-black uppercase bg-black text-white px-2 py-1 inline-block">
               Efetivo de Pessoal
             </h2>
-            <table className="w-full border-collapse border border-black mt-[-1px]">
+            <table className="w-full border-collapse border border-black -mt-px">
               <thead>
                 <tr className="bg-gray-100 border-b border-black text-[11px]">
                   <th className="text-left p-1.5 border-r border-black uppercase">
@@ -168,7 +168,7 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
             <h2 className="text-[11px] font-black uppercase bg-black text-white px-2 py-1 inline-block">
               Máquinas e Ferramentas
             </h2>
-            <table className="w-full border-collapse border border-black mt-[-1px]">
+            <table className="w-full border-collapse border border-black -mt-px">
               <thead>
                 <tr className="bg-gray-100 border-b border-black text-[11px]">
                   <th className="text-left p-1.5 border-r border-black uppercase">
@@ -241,7 +241,7 @@ export default async function PrintRDOPage({ params }: PrintRDOProps) {
             <img
               src={rdo.authorSignature}
               alt="Assinatura"
-              className="max-w-[200px] max-h-[80px] object-contain mb-1"
+              className="max-w-50 max-h-20 object-contain mb-1"
               style={{ filter: "brightness(0)" }}
             />
           ) : (
