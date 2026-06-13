@@ -1,3 +1,4 @@
+// app/api/projects/layout.tsx
 import { Navigation } from "@/components/navigation";
 import { BoxiconsProvider } from "@/components/ui/box-icon";
 
