@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, X, Filter } from "@boxicons/react";
+import { ChevronLeft, X, Filter, Trash, InfoCircle } from "@boxicons/react";
 import { cn } from "@/lib/utils";
 
 interface Photo {
@@ -33,16 +33,35 @@ export default function GalleryClient({
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // NOVO
 
-  // Filtra as fotos com base na aba selecionada
   const filteredPhotos = initialPhotos.filter(
     (photo) =>
       selectedCategory === "ALL" || photo.category === selectedCategory,
   );
 
-  // Tradutor de categorias para mostrar na miniatura
   const getCategoryLabel = (catId: string) => {
     return CATEGORIES.find((c) => c.id === catId)?.label || catId;
+  };
+
+  // Abre o modal em vez do window.confirm
+  const handleDeletePhoto = async () => {
+    if (!selectedPhoto) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/photos/${selectedPhoto.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Erro ao excluir");
+      setShowDeleteModal(false);
+      setSelectedPhoto(null);
+      router.refresh();
+    } catch (error) {
+      alert("Erro ao excluir a foto. Tente novamente.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -72,7 +91,7 @@ export default function GalleryClient({
           </div>
         </div>
 
-        {/* TABS DE CATEGORIAS (Rolagem Horizontal) */}
+        {/* TABS DE CATEGORIAS */}
         <div className="px-4 pb-3 overflow-x-auto hide-scrollbar">
           <div className="flex gap-2 min-w-max">
             {CATEGORIES.map((cat) => (
@@ -132,14 +151,17 @@ export default function GalleryClient({
       {/* LIGHTBOX (TELA CHEIA) */}
       {selectedPhoto && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col animation-fade-in">
+          {/* BARRA SUPERIOR DO LIGHTBOX */}
           <div className="pt-safe px-4 py-4 flex items-center justify-between bg-linear-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-10">
             <button
               onClick={() => setSelectedPhoto(null)}
+              disabled={isDeleting}
               className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:bg-white/20 transition-colors"
             >
               <X pack="basic" width={24} height={24} />
             </button>
-            <div className="text-right">
+
+            <div className="text-center">
               <p className="text-white font-bold text-sm">
                 {new Date(selectedPhoto.createdAt).toLocaleDateString("pt-BR")}
               </p>
@@ -150,6 +172,16 @@ export default function GalleryClient({
                 })}
               </p>
             </div>
+
+            {/* BOTÃO DE EXCLUIR — agora abre o modal */}
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              disabled={isDeleting}
+              title="Excluir Foto"
+              className="w-10 h-10 rounded-full bg-destructive/80 backdrop-blur-md flex items-center justify-center text-white active:bg-destructive transition-colors disabled:opacity-50"
+            >
+              <Trash pack="basic" width={20} height={20} />
+            </button>
           </div>
 
           <div className="flex-1 flex items-center justify-center p-2">
@@ -172,6 +204,98 @@ export default function GalleryClient({
                 {selectedPhoto.uploadedBy?.name || "Usuário"}
               </span>
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* ============================
+          MODAL DE CONFIRMAÇÃO DE EXCLUSÃO
+          ============================ */}
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 z-60 flex items-end sm:items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-photo-modal-title"
+        >
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !isDeleting && setShowDeleteModal(false)}
+          />
+
+          {/* Painel */}
+          <div className="relative w-full max-w-sm bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+            {/* Faixa vermelha de alerta */}
+            <div className="h-1.5 w-full bg-destructive" />
+
+            <div className="p-6">
+              {/* Ícone e título */}
+              <div className="flex flex-col items-center text-center gap-3 mb-6">
+                <div className="w-14 h-14 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center">
+                  <Trash
+                    pack="basic"
+                    width={26}
+                    height={26}
+                    className="text-destructive"
+                  />
+                </div>
+                <div>
+                  <h2
+                    id="delete-photo-modal-title"
+                    className="text-lg font-bold text-foreground"
+                  >
+                    Excluir esta foto?
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Esta ação é permanente e não poderá ser desfeita.
+                  </p>
+                </div>
+              </div>
+
+              {/* Aviso informativo */}
+              <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-destructive/5 border border-destructive/15 mb-6">
+                <InfoCircle
+                  pack="basic"
+                  width={16}
+                  height={16}
+                  className="text-destructive mt-0.5 shrink-0"
+                />
+                <p className="text-xs text-destructive leading-relaxed">
+                  A foto será removida permanentemente da galeria da obra e não
+                  poderá ser recuperada.
+                </p>
+              </div>
+
+              {/* Ações */}
+              <div className="flex flex-col gap-2.5">
+                <button
+                  onClick={handleDeletePhoto}
+                  disabled={isDeleting}
+                  className="w-full h-12 rounded-xl bg-destructive text-white font-semibold text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-60 active:opacity-80"
+                >
+                  {isDeleting ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Excluindo…
+                    </>
+                  ) : (
+                    <>
+                      <Trash pack="basic" width={16} height={16} />
+                      Sim, excluir foto
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={isDeleting}
+                  className="w-full h-12 rounded-xl border border-input bg-transparent text-foreground font-semibold text-sm transition-colors active:bg-secondary/50 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
