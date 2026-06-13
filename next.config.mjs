@@ -20,6 +20,8 @@ const nextConfig = {
       },
     ],
   },
+  // CORREÇÃO DO ERRO: Silencia o aviso estrito do Next.js 16 permitindo o build com o plugin de PWA
+  turbopack: {},
 };
 
 export default withPWA(nextConfig);
