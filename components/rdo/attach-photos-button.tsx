@@ -80,7 +80,7 @@ export function AttachPhotosButton({
   const sidebarContent = (
     <div
       className={cn(
-        "fixed inset-0 z-[9999] transition-all",
+        "fixed inset-0 z-9999 transition-all",
         isOpen ? "pointer-events-auto" : "pointer-events-none",
       )}
     >
@@ -96,7 +96,7 @@ export function AttachPhotosButton({
       {/* O PAINEL: Largura 100% no mobile e 450px no Desktop. Preso à direita. */}
       <div
         className={cn(
-          "absolute top-0 bottom-0 right-0 w-full md:w-[450px] bg-background shadow-2xl flex flex-col transition-transform duration-300 ease-in-out",
+          "absolute top-0 bottom-0 right-0 w-full md:w-112.5 bg-background shadow-2xl flex flex-col transition-transform duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "translate-x-full",
         )}
       >
@@ -130,7 +130,7 @@ export function AttachPhotosButton({
           </p>
 
           {unlinkedPhotos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center text-center p-6 bg-secondary/20 rounded-xl border border-dashed border-border min-h-[200px]">
+            <div className="flex flex-col items-center justify-center text-center p-6 bg-secondary/20 rounded-xl border border-dashed border-border min-h-50">
               <Camera
                 pack="basic"
                 width={32}

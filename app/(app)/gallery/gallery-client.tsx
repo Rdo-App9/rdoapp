@@ -132,7 +132,7 @@ export default function GalleryClient({
       {/* LIGHTBOX (TELA CHEIA) */}
       {selectedPhoto && (
         <div className="fixed inset-0 z-50 bg-black flex flex-col animation-fade-in">
-          <div className="pt-safe px-4 py-4 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-10">
+          <div className="pt-safe px-4 py-4 flex items-center justify-between bg-linear-to-b from-black/80 to-transparent absolute top-0 left-0 right-0 z-10">
             <button
               onClick={() => setSelectedPhoto(null)}
               className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:bg-white/20 transition-colors"
@@ -160,7 +160,7 @@ export default function GalleryClient({
             />
           </div>
 
-          <div className="pb-safe p-6 bg-gradient-to-t from-black/90 to-transparent absolute bottom-0 left-0 right-0">
+          <div className="pb-safe p-6 bg-linear-to-t from-black/90 to-transparent absolute bottom-0 left-0 right-0">
             <div className="flex items-center justify-between mb-2">
               <span className="px-3 py-1 bg-primary/20 text-primary border border-primary/30 rounded-full text-xs font-bold uppercase tracking-wider">
                 {getCategoryLabel(selectedPhoto.category)}
