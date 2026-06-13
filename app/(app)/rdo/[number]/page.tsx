@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { DeleteRdoButton } from "@/components/rdo/delete-rdo-button";
+import { AttachPhotosButton } from "@/components/rdo/attach-photos-button";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -78,6 +79,14 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
     );
   }
 
+  const unlinkedPhotos = await prisma.photo.findMany({
+    where: {
+      projectId: rdo.projectId,
+      rdoId: null,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
   // Traduções simples para o clima
   const weatherMap: Record<string, string> = {
     SUNNY: "Ensolarado",
@@ -90,7 +99,7 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
   return (
     <div className="flex-1 flex flex-col h-full bg-background relative print:bg-white print:text-black">
       {/* HEADER - Oculto na impressão */}
-      <header className="pt-safe sticky top-0 bg-background/80 backdrop-blur-md border-b border-border z-10 print:hidden">
+      <header className="pt-safe sticky top-0 bg-background border-b border-border z-10 print:hidden">
         <div className="px-6 py-4 flex items-center justify-between">
           <Link
             href={`/rdo?projectId=${rdo.projectId}`}
@@ -106,6 +115,12 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* BOTÃO DE ANEXAR FOTOS */}
+            <AttachPhotosButton
+              rdoId={rdo.id}
+              unlinkedPhotos={unlinkedPhotos}
+            />
+
             {/* BOTÃO DE EXCLUIR */}
             <DeleteRdoButton
               rdoId={rdo.id}
