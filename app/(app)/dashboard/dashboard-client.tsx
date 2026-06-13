@@ -1,7 +1,7 @@
 // app/(app)/dashboard/dashboard-client.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -45,6 +45,12 @@ export default function DashboardClient({
   const hasRealProjects =
     projects.length > 0 && !projects[0].id.startsWith("mock");
   const [selectedProject, setSelectedProject] = useState(projects[0]);
+
+  useEffect(() => {
+    if (hasRealProjects && selectedProject) {
+      localStorage.setItem("@rdo:activeProjectId", selectedProject.id);
+    }
+  }, [selectedProject, hasRealProjects]);
 
   const handleEmergency = async () => {
     setShowEmergencyConfirm(false);

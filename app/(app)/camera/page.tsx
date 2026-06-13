@@ -62,8 +62,26 @@ function CameraContent() {
   const searchParams = useSearchParams();
   const initialMode = (searchParams.get("mode") as CameraMode) || "photo";
 
-  // Pegamos o projectId da URL (precisa estar lá, senão a foto fica orfã)
-  const projectId = searchParams.get("projectId");
+  // Agora lemos o ID da obra gravado pelo Dashboard no celular!
+  const [projectId, setProjectId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // 1. Tenta pegar da URL (se veio pelo botão Ações Rápidas)
+    const urlProjectId = searchParams.get("projectId");
+    // 2. Se não veio da URL, tenta pegar da memória do celular (se veio pelo menu inferior)
+    const savedProjectId = localStorage.getItem("@rdo:activeProjectId");
+
+    const activeId = urlProjectId || savedProjectId;
+
+    if (activeId) {
+      setProjectId(activeId);
+    } else {
+      alert(
+        "Nenhuma obra selecionada! Volte ao painel e selecione uma obra primeiro.",
+      );
+      router.push("/dashboard");
+    }
+  }, [searchParams, router]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -102,14 +120,6 @@ function CameraContent() {
   const [markupColor, setMarkupColor] = useState("#ff0000");
 
   useEffect(() => {
-    // Alerta se entrou na câmera sem um projeto selecionado
-    if (!projectId) {
-      alert(
-        "Nenhuma obra selecionada! Volte ao painel e selecione uma obra antes de abrir a câmera.",
-      );
-      router.push("/dashboard");
-    }
-
     const userAgent = navigator.userAgent.toLowerCase();
     const isMobileAgent =
       /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
