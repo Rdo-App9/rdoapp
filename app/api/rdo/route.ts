@@ -148,3 +148,45 @@ export async function POST(request: Request) {
     );
   }
 }
+// ==========================================
+// ROTA GET: BUSCAR RDOs DE UMA OBRA
+// ==========================================
+export async function GET(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+    }
+
+    // Pega o projectId da URL (ex: /api/rdo?projectId=123)
+    const { searchParams } = new URL(request.url);
+    const projectId = searchParams.get("projectId");
+
+    if (!projectId) {
+      return NextResponse.json(
+        { error: "ID da Obra não informado." },
+        { status: 400 },
+      );
+    }
+
+    // Busca os RDOs mais recentes desta obra para listar no app
+    const rdos = await prisma.rDO.findMany({
+      where: { projectId },
+      orderBy: { number: "desc" }, // Do mais novo para o mais velho
+      take: 10, // Traz os últimos 10 por segurança
+      select: {
+        id: true,
+        number: true,
+        date: true,
+      },
+    });
+
+    return NextResponse.json(rdos, { status: 200 });
+  } catch (error: any) {
+    console.error("[RDO_GET_ERROR]:", error);
+    return NextResponse.json(
+      { error: "Erro interno ao buscar a lista de RDOs." },
+      { status: 500 },
+    );
+  }
+}

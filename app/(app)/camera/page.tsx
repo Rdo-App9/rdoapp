@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { BoxIcon, BoxiconsProvider } from "@/components/ui/box-icon";
-import { BottomSheet, BottomSheetOption } from "@/components/ui/bottom-sheet";
+import { BottomSheet } from "@/components/ui/bottom-sheet";
 import jsQR from "jsqr";
 
 type CameraMode = "photo" | "scan";
@@ -62,15 +62,11 @@ function CameraContent() {
   const searchParams = useSearchParams();
   const initialMode = (searchParams.get("mode") as CameraMode) || "photo";
 
-  // Agora lemos o ID da obra gravado pelo Dashboard no celular!
   const [projectId, setProjectId] = useState<string | null>(null);
 
   useEffect(() => {
-    // 1. Tenta pegar da URL (se veio pelo botão Ações Rápidas)
     const urlProjectId = searchParams.get("projectId");
-    // 2. Se não veio da URL, tenta pegar da memória do celular (se veio pelo menu inferior)
     const savedProjectId = localStorage.getItem("@rdo:activeProjectId");
-
     const activeId = urlProjectId || savedProjectId;
 
     if (activeId) {
@@ -93,7 +89,7 @@ function CameraContent() {
   );
   const [mode, setMode] = useState<CameraMode>(initialMode);
   const [isCapturing, setIsCapturing] = useState(false);
-  const [isUploading, setIsUploading] = useState(false); // NOVO ESTADO
+  const [isUploading, setIsUploading] = useState(false);
   const [capturedPhoto, setCapturedPhoto] = useState<CapturedPhoto | null>(
     null,
   );
@@ -119,6 +115,11 @@ function CameraContent() {
   );
   const [markupColor, setMarkupColor] = useState("#ff0000");
 
+  // ==================== NOVOS ESTADOS PARA VINCULAÇÃO DE RDO ====================
+  const [showRdoSheet, setShowRdoSheet] = useState(false);
+  const [recentRdos, setRecentRdos] = useState<any[]>([]);
+  const [isLoadingRdos, setIsLoadingRdos] = useState(false);
+
   useEffect(() => {
     const userAgent = navigator.userAgent.toLowerCase();
     const isMobileAgent =
@@ -128,14 +129,20 @@ function CameraContent() {
     const isIPadOS =
       navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
     setIsDeviceSupported(isMobileAgent || isIPadOS);
-  }, [projectId, router]);
+  }, []);
+
+  // ==================== FIX IPHONE: GESTÃO DE CÂMERA ====================
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+  }, []);
 
   const startCamera = useCallback(async () => {
     if (!isDeviceSupported) return;
     try {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
+      stopCamera(); // Garante que não há streams órfãs
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: "environment",
@@ -149,13 +156,41 @@ function CameraContent() {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.setAttribute("playsinline", "true");
-        await videoRef.current.play();
+        // O Safari do iOS precisa do play() explícito em promessa para não travar
+        videoRef.current
+          .play()
+          .catch((e) => console.warn("Auto-play prevented", e));
       }
     } catch (error) {
       console.error("[Camera error]:", error);
     }
-  }, [isDeviceSupported]);
+  }, [isDeviceSupported, stopCamera]);
+
+  // FIX IPHONE: Desliga a câmera se o app for minimizado e liga quando voltar
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopCamera();
+      } else {
+        // Se voltar e não estiver com foto tirada, liga a câmera de novo
+        if (!capturedPhoto) {
+          startCamera();
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [capturedPhoto, startCamera, stopCamera]);
+
+  useEffect(() => {
+    if (isDeviceSupported && !capturedPhoto) startCamera();
+    return () => {
+      stopCamera();
+      if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current);
+    };
+  }, [startCamera, stopCamera, isDeviceSupported, capturedPhoto]);
 
   useEffect(() => {
     if (!isDeviceSupported) return;
@@ -179,15 +214,6 @@ function CameraContent() {
     return () =>
       window.removeEventListener("deviceorientation", handleOrientation);
   }, [isDeviceSupported]);
-
-  useEffect(() => {
-    if (isDeviceSupported) startCamera();
-    return () => {
-      if (streamRef.current)
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current);
-    };
-  }, [startCamera, isDeviceSupported]);
 
   useEffect(() => {
     if (!isDeviceSupported) return;
@@ -237,12 +263,6 @@ function CameraContent() {
     };
   }, [mode, scannedResult, isDeviceSupported]);
 
-  const handleUseCode = async () => {
-    setIsProcessingCode(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    router.push("/dashboard");
-  };
-
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
     setIsCapturing(true);
@@ -288,7 +308,6 @@ function CameraContent() {
     setIsCapturing(false);
   };
 
-  // ==================== LÓGICA DE UPLOAD PARA O CLOUDFLARE ====================
   const dataURLtoBlob = (dataurl: string) => {
     let arr = dataurl.split(","),
       mime = arr[0].match(/:(.*?);/)![1],
@@ -301,7 +320,26 @@ function CameraContent() {
     return new Blob([u8arr], { type: mime });
   };
 
-  const handleUpload = async () => {
+  // ==================== NOVO: BUSCAR RDOs ABERTOS E UPLOAD ====================
+  const fetchRecentRdos = async () => {
+    if (!projectId) return;
+    setIsLoadingRdos(true);
+    try {
+      // Usamos a rota da API (assumindo que retorna uma lista de RDOs do projeto)
+      const res = await fetch(`/api/rdo?projectId=${projectId}`);
+      if (res.ok) {
+        const data = await res.json();
+        // Pegamos apenas os 5 RDOs mais recentes
+        setRecentRdos(data.slice(0, 5));
+      }
+    } catch (error) {
+      console.error("Erro ao buscar RDOs", error);
+    } finally {
+      setIsLoadingRdos(false);
+    }
+  };
+
+  const handleUpload = async (rdoId?: string) => {
     if (!capturedPhoto || !projectId) return;
     setIsUploading(true);
 
@@ -320,20 +358,26 @@ function CameraContent() {
       if (capturedPhoto.longitude)
         formData.append("longitude", capturedPhoto.longitude.toString());
 
+      // Se ele selecionou um RDO, envia o rdoId também!
+      if (rdoId) formData.append("rdoId", rdoId);
+
       const res = await fetch("/api/photos", {
         method: "POST",
         body: formData,
       });
 
-      if (!res.ok) {
-        throw new Error("Erro ao salvar a foto");
-      }
+      if (!res.ok) throw new Error("Erro ao salvar a foto");
 
-      // Sucesso! Limpa a foto da tela e avisa o usuário
-      alert("Foto salva com sucesso na obra!");
+      alert(
+        rdoId
+          ? "Foto vinculada ao RDO com sucesso!"
+          : "Foto salva na Galeria da Obra!",
+      );
+
+      setShowRdoSheet(false);
       setCapturedPhoto(null);
-      // Se quiser voltar pro Dashboard logo após bater 1 foto, descomente a linha abaixo:
-      // router.push("/dashboard");
+      // Reinicia a câmera para a próxima foto
+      startCamera();
     } catch (error) {
       alert(
         "Erro ao enviar a imagem. Verifique sua conexão e tente novamente.",
@@ -342,6 +386,11 @@ function CameraContent() {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleOpenRdoSelection = () => {
+    setShowRdoSheet(true);
+    fetchRecentRdos();
   };
 
   // ==================== MARKUP (DESENHO) ====================
@@ -443,25 +492,16 @@ function CameraContent() {
         </div>
       ) : (
         <div className="fixed inset-0 bg-black overflow-hidden flex flex-col">
-          <style
-            dangerouslySetInnerHTML={{
-              __html: `@keyframes scanLine { 0% { top: 0px; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { top: 250px; opacity: 0; } } .animate-scan-line { animation: scanLine 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; }`,
-            }}
-          />
-
           {!capturedPhoto && (
             <div className="relative flex-1">
+              {/* FIX IPHONE: playsInline e autoPlay forçam o Safari a rodar o vídeo corretamente */}
               <video
                 ref={videoRef}
                 className="absolute inset-0 w-full h-full object-cover"
                 playsInline
+                autoPlay
                 muted
               />
-              {mode === "scan" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  {/* ... conteúdo do scanner (omitido para brevidade) ... */}
-                </div>
-              )}
 
               <div className="absolute top-0 left-0 right-0 pt-safe px-4 py-4 bg-linear-to-b from-black/80 to-transparent z-10">
                 <div className="flex items-center justify-between">
@@ -569,46 +609,62 @@ function CameraContent() {
                   className="max-w-full max-h-full object-contain rounded-lg"
                 />
               </div>
-              <div className="px-4 py-4 pb-safe bg-black/90 border-t border-white/10">
-                <div className="flex justify-center mb-4">
-                  <span className="px-4 py-1.5 bg-white/10 rounded-full text-white text-xs font-semibold uppercase tracking-wider">
+
+              {/* NOVA BARRA DE AÇÕES INFERIOR COM VINCULAR AO RDO */}
+              <div className="px-4 py-4 pb-safe bg-black/90 border-t border-white/10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCapturedPhoto(null);
+                      startCamera();
+                    }}
+                    disabled={isUploading}
+                    className="w-12 h-12 rounded-full bg-white/10 text-white flex items-center justify-center active:bg-white/20 transition-all disabled:opacity-50"
+                  >
+                    <BoxIcon name="x" size={24} />
+                  </button>
+
+                  <span className="px-4 py-1.5 bg-white/10 rounded-full text-white text-xs font-semibold uppercase tracking-wider flex items-center gap-1">
                     {
                       categoryOptions.find((c) => c.value === selectedCategory)
                         ?.label
                     }
                   </span>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setCapturedPhoto(null)}
-                    disabled={isUploading}
-                    className="h-14 rounded-xl bg-white/10 text-white text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:bg-white/20 transition-all disabled:opacity-50"
-                  >
-                    <BoxIcon name="trash" size={20} /> Descartar
-                  </button>
+
                   <button
                     type="button"
                     onClick={() => setShowMarkup(true)}
                     disabled={isUploading}
-                    className="h-14 rounded-xl bg-white/10 text-white text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:bg-white/20 transition-all disabled:opacity-50"
+                    className="w-12 h-12 rounded-full bg-white/10 text-white flex items-center justify-center active:bg-white/20 transition-all disabled:opacity-50"
                   >
-                    <BoxIcon name="pencil" size={20} /> Marcar
+                    <BoxIcon name="pencil" size={24} />
                   </button>
+                </div>
+
+                <div className="flex flex-col gap-2">
                   <button
                     type="button"
-                    onClick={handleUpload}
+                    onClick={handleOpenRdoSelection}
                     disabled={isUploading}
-                    className="h-14 rounded-xl bg-success text-success-foreground text-xs sm:text-sm font-semibold flex flex-col items-center justify-center gap-1 active:scale-[0.98] transition-all disabled:opacity-70"
+                    className="w-full h-14 rounded-xl bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
                   >
                     {isUploading ? (
                       <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
-                        <BoxIcon name="check" size={20} />
-                        Guardar na Obra
+                        <BoxIcon size={20} name={"image"} />
+                        Vincular ao RDO
                       </>
                     )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleUpload()} // Sem rdoId, salva só na galeria
+                    disabled={isUploading}
+                    className="w-full h-12 rounded-xl bg-transparent text-white/70 hover:text-white text-sm font-medium flex items-center justify-center transition-all disabled:opacity-50"
+                  >
+                    Salvar apenas na Galeria
                   </button>
                 </div>
               </div>
@@ -617,7 +673,6 @@ function CameraContent() {
 
           {showMarkup && capturedPhoto && (
             <div className="absolute inset-0 bg-black flex flex-col z-30">
-              {/* ... editor markup mantido idêntico ... */}
               <div className="pt-safe px-4 py-4 flex items-center justify-between bg-black/90">
                 <button
                   type="button"
@@ -664,6 +719,49 @@ function CameraContent() {
               </div>
             </div>
           )}
+
+          {/* NOVO BOTTOM SHEET PARA SELEÇÃO DE RDO */}
+          <BottomSheet
+            open={showRdoSheet}
+            onClose={() => setShowRdoSheet(false)}
+            title="Selecione o RDO"
+          >
+            <div className="px-4 pb-8 flex flex-col gap-2">
+              <p className="text-sm text-muted-foreground mb-2 text-center">
+                A qual Relatório Diário de Obra esta foto pertence?
+              </p>
+
+              {isLoadingRdos ? (
+                <div className="flex justify-center py-6">
+                  <span className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : recentRdos.length === 0 ? (
+                <div className="text-center py-6 text-sm text-muted-foreground bg-secondary/20 rounded-xl">
+                  Nenhum RDO encontrado. <br /> Você precisa criar um RDO
+                  primeiro.
+                </div>
+              ) : (
+                recentRdos.map((rdo) => (
+                  <button
+                    key={rdo.id}
+                    onClick={() => handleUpload(rdo.id)} // Passa o ID do RDO para o upload!
+                    className="flex flex-col items-start p-4 rounded-xl border border-border bg-card active:scale-[0.98] transition-transform"
+                  >
+                    <span className="font-bold text-foreground">
+                      Relatório #{rdo.number}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(rdo.date).toLocaleDateString("pt-BR", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                      })}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </BottomSheet>
 
           <BottomSheet
             open={showCategorySheet}
