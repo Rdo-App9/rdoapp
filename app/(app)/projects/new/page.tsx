@@ -148,8 +148,6 @@ export default function NewProjectPage() {
 
             // Se o GPS encontrar o CEP, ele formata com o traço
             if (postcode) {
-              // Apenas atualiza o state. O useEffect do CEP vai tentar buscar,
-              // mas como os campos já estarão preenchidos pelo GPS, não tem problema.
               setZipCode(postcode.replace("-", ""));
             }
 
@@ -211,8 +209,9 @@ export default function NewProjectPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative">
-      <header className="pt-safe sticky top-0 bg-background/80 backdrop-blur-lg border-b border-border z-10">
+    // CORREÇÃO 1: Mudamos o container principal para flex-1 e h-full
+    <div className="flex-1 flex flex-col h-full bg-background relative">
+      <header className="pt-safe sticky top-0 bg-background/80 backdrop-blur-lg border-b border-border z-10 shrink-0">
         <div className="px-6 py-4 flex items-center justify-between">
           <button
             onClick={() => router.back()}
@@ -225,7 +224,8 @@ export default function NewProjectPage() {
         </div>
       </header>
 
-      <main className="flex-1 px-6 py-6 pb-28">
+      {/* CORREÇÃO 2 e 3: Adicionado overflow-y-auto e pb-36 para dar muito espaço no fim */}
+      <main className="flex-1 px-6 py-6 overflow-y-auto pb-36">
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-foreground tracking-tight">
@@ -289,7 +289,6 @@ export default function NewProjectPage() {
                 maxLength={9}
                 value={zipCode}
                 onChange={(e) => {
-                  // Formatação simples (00000-000) enquanto digita
                   let v = e.target.value.replace(/\D/g, "");
                   if (v.length > 5) v = v.replace(/^(\d{5})(\d)/, "$1-$2");
                   setZipCode(v);
@@ -366,7 +365,8 @@ export default function NewProjectPage() {
             </div>
           </div>
 
-          <div className="pt-4 mt-2 pb-8">
+          {/* CORREÇÃO 4: Adicionado pb-safe aqui também como dupla garantia no iOS */}
+          <div className="pt-4 mt-2 pb-safe">
             <button
               type="submit"
               disabled={isLoading || !name || !address || !city || !state}
