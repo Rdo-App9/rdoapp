@@ -115,7 +115,6 @@ function CameraContent() {
   );
   const [markupColor, setMarkupColor] = useState("#ff0000");
 
-  // ==================== NOVOS ESTADOS PARA VINCULAÇÃO DE RDO ====================
   const [showRdoSheet, setShowRdoSheet] = useState(false);
   const [recentRdos, setRecentRdos] = useState<any[]>([]);
   const [isLoadingRdos, setIsLoadingRdos] = useState(false);
@@ -131,7 +130,6 @@ function CameraContent() {
     setIsDeviceSupported(isMobileAgent || isIPadOS);
   }, []);
 
-  // ==================== FIX IPHONE: GESTÃO DE CÂMERA ====================
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
@@ -142,7 +140,8 @@ function CameraContent() {
   const startCamera = useCallback(async () => {
     if (!isDeviceSupported) return;
     try {
-      stopCamera(); // Garante que não há streams órfãs
+      stopCamera(); // Garante que a câmera anterior foi fechada
+
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: "environment",
@@ -151,39 +150,28 @@ function CameraContent() {
         },
         audio: false,
       };
+
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        // O Safari do iOS precisa do play() explícito em promessa para não travar
-        videoRef.current
+        // iOS Safari exige que o vídeo esteja mudo via JavaScript para permitir Autoplay sem clique
+        videoRef.current.muted = true;
+        videoRef.current.setAttribute("playsinline", "true");
+        await videoRef.current
           .play()
           .catch((e) => console.warn("Auto-play prevented", e));
       }
     } catch (error) {
       console.error("[Camera error]:", error);
+      alert(
+        "Erro ao abrir a câmera. Verifique as permissões de uso do Safari.",
+      );
     }
   }, [isDeviceSupported, stopCamera]);
 
-  // FIX IPHONE: Desliga a câmera se o app for minimizado e liga quando voltar
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        stopCamera();
-      } else {
-        // Se voltar e não estiver com foto tirada, liga a câmera de novo
-        if (!capturedPhoto) {
-          startCamera();
-        }
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [capturedPhoto, startCamera, stopCamera]);
-
+  // useEffect simplificado para evitar race-conditions no Safari
   useEffect(() => {
     if (isDeviceSupported && !capturedPhoto) startCamera();
     return () => {
@@ -320,16 +308,13 @@ function CameraContent() {
     return new Blob([u8arr], { type: mime });
   };
 
-  // ==================== NOVO: BUSCAR RDOs ABERTOS E UPLOAD ====================
   const fetchRecentRdos = async () => {
     if (!projectId) return;
     setIsLoadingRdos(true);
     try {
-      // Usamos a rota da API (assumindo que retorna uma lista de RDOs do projeto)
       const res = await fetch(`/api/rdo?projectId=${projectId}`);
       if (res.ok) {
         const data = await res.json();
-        // Pegamos apenas os 5 RDOs mais recentes
         setRecentRdos(data.slice(0, 5));
       }
     } catch (error) {
@@ -357,8 +342,6 @@ function CameraContent() {
         formData.append("latitude", capturedPhoto.latitude.toString());
       if (capturedPhoto.longitude)
         formData.append("longitude", capturedPhoto.longitude.toString());
-
-      // Se ele selecionou um RDO, envia o rdoId também!
       if (rdoId) formData.append("rdoId", rdoId);
 
       const res = await fetch("/api/photos", {
@@ -376,7 +359,6 @@ function CameraContent() {
 
       setShowRdoSheet(false);
       setCapturedPhoto(null);
-      // Reinicia a câmera para a próxima foto
       startCamera();
     } catch (error) {
       alert(
@@ -393,7 +375,6 @@ function CameraContent() {
     fetchRecentRdos();
   };
 
-  // ==================== MARKUP (DESENHO) ====================
   const getEventPoint = (e: React.TouchEvent | React.MouseEvent) => {
     const canvas = markupCanvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -494,7 +475,6 @@ function CameraContent() {
         <div className="fixed inset-0 bg-black overflow-hidden flex flex-col">
           {!capturedPhoto && (
             <div className="relative flex-1">
-              {/* FIX IPHONE: playsInline e autoPlay forçam o Safari a rodar o vídeo corretamente */}
               <video
                 ref={videoRef}
                 className="absolute inset-0 w-full h-full object-cover"
@@ -503,7 +483,8 @@ function CameraContent() {
                 muted
               />
 
-              <div className="absolute top-0 left-0 right-0 pt-safe px-4 py-4 bg-linear-to-b from-black/80 to-transparent z-10">
+              {/* FIX IPHONE 15: O pt-[max(env(safe-area-inset-top),54px)] garante que desça a Dynamic Island inteira */}
+              <div className="absolute top-0 left-0 right-0 pt-[max(env(safe-area-inset-top),54px)] px-4 pb-4 bg-gradient-to-b from-black/80 to-transparent z-10">
                 <div className="flex items-center justify-between">
                   <button
                     type="button"
@@ -528,7 +509,7 @@ function CameraContent() {
                 </div>
               </div>
 
-              <div className="absolute top-20 left-1/2 -translate-x-1/2 z-10">
+              <div className="absolute top-[120px] left-1/2 -translate-x-1/2 z-10">
                 <div className="flex bg-black/50 backdrop-blur-md rounded-full p-1">
                   <button
                     type="button"
@@ -556,7 +537,7 @@ function CameraContent() {
                 </div>
               </div>
 
-              <div className="absolute bottom-0 left-0 right-0 pb-safe pt-24 pb-8 bg-linear-to-t from-black via-black/80 to-transparent">
+              <div className="absolute bottom-0 left-0 right-0 pb-safe pt-24 pb-8 bg-gradient-to-t from-black via-black/80 to-transparent">
                 {mode === "photo" && (
                   <div className="flex items-center justify-around px-6 max-w-sm mx-auto">
                     <button
@@ -610,7 +591,6 @@ function CameraContent() {
                 />
               </div>
 
-              {/* NOVA BARRA DE AÇÕES INFERIOR COM VINCULAR AO RDO */}
               <div className="px-4 py-4 pb-safe bg-black/90 border-t border-white/10 space-y-4">
                 <div className="flex items-center justify-between">
                   <button
@@ -660,7 +640,7 @@ function CameraContent() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleUpload()} // Sem rdoId, salva só na galeria
+                    onClick={() => handleUpload()}
                     disabled={isUploading}
                     className="w-full h-12 rounded-xl bg-transparent text-white/70 hover:text-white text-sm font-medium flex items-center justify-center transition-all disabled:opacity-50"
                   >
@@ -673,7 +653,7 @@ function CameraContent() {
 
           {showMarkup && capturedPhoto && (
             <div className="absolute inset-0 bg-black flex flex-col z-30">
-              <div className="pt-safe px-4 py-4 flex items-center justify-between bg-black/90">
+              <div className="pt-[max(env(safe-area-inset-top),54px)] px-4 pb-4 flex items-center justify-between bg-black/90">
                 <button
                   type="button"
                   onClick={() => setShowMarkup(false)}
@@ -720,7 +700,6 @@ function CameraContent() {
             </div>
           )}
 
-          {/* NOVO BOTTOM SHEET PARA SELEÇÃO DE RDO */}
           <BottomSheet
             open={showRdoSheet}
             onClose={() => setShowRdoSheet(false)}
@@ -744,7 +723,7 @@ function CameraContent() {
                 recentRdos.map((rdo) => (
                   <button
                     key={rdo.id}
-                    onClick={() => handleUpload(rdo.id)} // Passa o ID do RDO para o upload!
+                    onClick={() => handleUpload(rdo.id)}
                     className="flex flex-col items-start p-4 rounded-xl border border-border bg-card active:scale-[0.98] transition-transform"
                   >
                     <span className="font-bold text-foreground">
