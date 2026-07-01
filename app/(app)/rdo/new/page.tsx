@@ -256,7 +256,6 @@ function NewRDOForm() {
         weatherCondition: weather,
         temperature,
         humidity,
-        // CORREÇÃO: Enviando as coordenadas (se existirem)
         latitude: location?.lat || null,
         longitude: location?.lng || null,
         workforce,
@@ -276,12 +275,15 @@ function NewRDOForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Falha ao salvar RDO.");
 
+      // CORREÇÃO: Força o navegador a limpar o cache e volta pra lista da obra exata.
       router.refresh();
-      router.push(`/dashboard`);
+      // Usamos setTimeout(0) para garantir que o React execute o refresh antes do push visual
+      setTimeout(() => {
+        router.push(`/rdo?projectId=${projectId}&t=${Date.now()}`);
+      }, 0);
     } catch (err: any) {
       setError(err.message || "Ocorreu um erro na rede.");
-    } finally {
-      setIsSaving(false);
+      setIsSaving(false); // Só volta ao normal se der erro
     }
   };
 

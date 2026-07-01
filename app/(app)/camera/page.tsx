@@ -484,7 +484,7 @@ function CameraContent() {
               />
 
               {/* FIX IPHONE 15: O pt-[max(env(safe-area-inset-top),54px)] garante que desça a Dynamic Island inteira */}
-              <div className="absolute top-0 left-0 right-0 pt-[max(env(safe-area-inset-top),54px)] px-4 pb-4 bg-gradient-to-b from-black/80 to-transparent z-10">
+              <div className="absolute top-0 left-0 right-0 pt-[max(env(safe-area-inset-top),54px)] px-4 pb-4 bg-linear-to-b from-black/80 to-transparent z-10">
                 <div className="flex items-center justify-between">
                   <button
                     type="button"
@@ -509,7 +509,7 @@ function CameraContent() {
                 </div>
               </div>
 
-              <div className="absolute top-[120px] left-1/2 -translate-x-1/2 z-10">
+              <div className="absolute top-30 left-1/2 -translate-x-1/2 z-10">
                 <div className="flex bg-black/50 backdrop-blur-md rounded-full p-1">
                   <button
                     type="button"
@@ -537,7 +537,7 @@ function CameraContent() {
                 </div>
               </div>
 
-              <div className="absolute bottom-0 left-0 right-0 pb-safe pt-24 pb-8 bg-gradient-to-t from-black via-black/80 to-transparent">
+              <div className="absolute bottom-0 left-0 right-0 pb-safe pt-24 pb-8 bg-linear-to-t from-black via-black/80 to-transparent">
                 {mode === "photo" && (
                   <div className="flex items-center justify-around px-6 max-w-sm mx-auto">
                     <button

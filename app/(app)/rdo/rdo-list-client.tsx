@@ -54,7 +54,7 @@ const statusConfig: Record<RDOStatus, { label: string; color: string }> = {
 
 interface RDOListClientProps {
   initialRdos: RDO[];
-  projectId: string; // <-- ADICIONADO PARA AMARRAR O BOTÃO DE NOVO RDO
+  projectId: string;
 }
 
 export default function RDOListClient({
@@ -76,6 +76,14 @@ export default function RDOListClient({
     signed: initialRdos.filter((r) => r.status === "signed").length,
     approved: initialRdos.filter((r) => r.status === "approved").length,
     rejected: initialRdos.filter((r) => r.status === "rejected").length,
+  };
+
+  // CORREÇÃO: Função dedicada para navegação blindada contra cache
+  const handleOpenRdo = (rdoNumber: number) => {
+    // 1. Limpa o cache agressivo do Next.js que poderia ter guardado um "404"
+    router.refresh();
+    // 2. Passa o projectId na URL para garantir segurança entre obras e força um timestamp para burlar o cache
+    router.push(`/rdo/${rdoNumber}?projectId=${projectId}&t=${Date.now()}`);
   };
 
   return (
@@ -169,7 +177,6 @@ export default function RDOListClient({
           {filter === "all" ? "Filtrar" : statusConfig[filter].label}
         </button>
         <button
-          // CORREÇÃO: O BOTÃO AGORA MANDA O ID DA OBRA NA URL!
           onClick={() => router.push(`/rdo/new?projectId=${projectId}`)}
           className="flex items-center gap-2 px-4 h-10 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 active:scale-[0.98] transition-all"
         >
@@ -183,7 +190,7 @@ export default function RDOListClient({
           {filteredRDOs.map((rdo) => (
             <button
               key={rdo.id}
-              onClick={() => router.push(`/rdo/${rdo.number}`)}
+              onClick={() => handleOpenRdo(rdo.number)}
               className="w-full p-4 rounded-md border border-border bg-transparent flex items-center gap-4 transition-all active:bg-secondary/50 active:scale-[0.99]"
             >
               <div className="w-12 h-12 rounded-md bg-secondary/30 flex items-center justify-center shrink-0">

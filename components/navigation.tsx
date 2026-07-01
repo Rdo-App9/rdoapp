@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 // Importação dos ícones do pacote novo oficial
@@ -9,6 +9,7 @@ import { Home, Clipboard, Camera, Cog, HardHat } from "@boxicons/react";
 
 export function Navigation() {
   const pathname = usePathname();
+  const router = useRouter(); // <-- ADICIONADO: Para controlarmos a navegação manualmente
 
   const navItems = [
     { name: "Início", href: "/dashboard", Icon: Home },
@@ -23,6 +24,16 @@ export function Navigation() {
     return null;
   }
 
+  // CORREÇÃO: Função que obriga o app a limpar o cache ao trocar de aba
+  const handleNavigation = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    href: string,
+  ) => {
+    e.preventDefault(); // Impede o link padrão
+    router.refresh(); // Limpa a árvore de cache do Next.js
+    router.push(href); // Força a ida para a tela nova e limpa
+  };
+
   return (
     <>
       {/* ==================== SIDEBAR (Desktop) ==================== */}
@@ -30,7 +41,6 @@ export function Navigation() {
         <div className="p-6 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shadow-sm">
-              {/* Ajustado: pack="basic" e dimensões numéricas explícitas no width/height */}
               <HardHat
                 pack="basic"
                 width={28}
@@ -61,6 +71,7 @@ export function Navigation() {
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={(e) => handleNavigation(e, item.href)} // <-- ADICIONADO AQUI
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 active:scale-[0.98]",
                   isActive
@@ -68,7 +79,6 @@ export function Navigation() {
                     : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground",
                 )}
               >
-                {/* Ajustado: pack agora alterna entre filled e basic */}
                 <IconComponent
                   pack={isActive ? "filled" : "basic"}
                   width={24}
@@ -100,6 +110,7 @@ export function Navigation() {
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={(e) => handleNavigation(e, item.href)} // <-- ADICIONADO AQUI TAMBÉM
                 className="relative flex flex-col items-center justify-center w-16 h-14 gap-1 group"
               >
                 <div
@@ -108,7 +119,6 @@ export function Navigation() {
                     isActive ? "text-primary" : "text-muted-foreground",
                   )}
                 >
-                  {/* Ajustado: Usando números puros para width/height de forma responsiva */}
                   <IconComponent
                     pack={isActive ? "filled" : "basic"}
                     width={currentSize}
