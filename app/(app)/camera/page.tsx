@@ -83,6 +83,7 @@ function CameraContent() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const markupCanvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isDeviceSupported, setIsDeviceSupported] = useState<boolean | null>(
     null,
@@ -294,6 +295,28 @@ function CameraContent() {
       category: selectedCategory,
     });
     setIsCapturing(false);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (readerEvent) => {
+      const dataUrl = readerEvent.target?.result as string;
+      // Criamos o objeto CapturedPhoto igualzinho como se tivesse vindo da câmera
+      setCapturedPhoto({
+        id: Date.now().toString(),
+        dataUrl,
+        timestamp: new Date(),
+        hasMarkup: false,
+        category: selectedCategory,
+      });
+    };
+    reader.readAsDataURL(file);
+
+    // Permite selecionar o mesmo arquivo novamente depois
+    e.target.value = "";
   };
 
   const dataURLtoBlob = (dataurl: string) => {
@@ -555,6 +578,19 @@ function CameraContent() {
                         className="text-white"
                       />
                     </button>
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center active:scale-95 transition-all"
+                    >
+                      <BoxIcon
+                        name={"photo-album" as any}
+                        size={20}
+                        className="text-white"
+                      />
+                    </button>
+
                     <button
                       type="button"
                       onClick={capturePhoto}
@@ -578,6 +614,13 @@ function CameraContent() {
                 )}
               </div>
               <canvas ref={canvasRef} className="hidden" />
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                accept="image/*"
+                className="hidden"
+              />
             </div>
           )}
 
