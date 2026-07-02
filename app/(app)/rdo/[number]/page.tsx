@@ -15,6 +15,7 @@ import {
   Printer,
   GlobeAmericas,
   Camera,
+  Pencil, // <-- Ícone importado
 } from "@boxicons/react";
 
 interface RDODetailsProps {
@@ -118,6 +119,15 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* BOTÃO DE EDITAR NOVO! */}
+            <Link
+              href={`/rdo/${rdo.number}/edit`}
+              title="Editar Relatório"
+              className="w-10 h-10 rounded-xl border border-input bg-transparent flex items-center justify-center active:bg-secondary/50 transition-colors text-foreground hover:bg-secondary/20"
+            >
+              <Pencil pack="basic" width={20} height={20} />
+            </Link>
+
             <AttachPhotosButton
               rdoId={rdo.id}
               unlinkedPhotos={unlinkedPhotos}
