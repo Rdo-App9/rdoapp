@@ -30,6 +30,11 @@ interface CapturedPhoto {
   scannedCode?: string;
 }
 
+interface BatchProgress {
+  current: number;
+  total: number;
+}
+
 const categoryOptions: {
   value: PhotoCategory;
   label: string;
@@ -42,6 +47,58 @@ const categoryOptions: {
   { value: "equipment", label: "Equipamento", icon: "wrench" },
   { value: "general", label: "Geral", icon: "images" },
 ];
+
+// Redimensiona e recomprime a imagem antes do envio.
+// Fotos do iPhone (24MP/48MP) podem chegar a 5-10MB, o que estoura o
+// tempo/limite de payload de funções serverless (Vercel). Reduzindo a
+// largura máxima e recomprimindo em JPEG, o arquivo cai para ~200-600KB.
+const compressImage = (
+  fileOrBlob: File | Blob,
+  maxWidth = 1600,
+  quality = 0.82,
+): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("Não foi possível processar a imagem"));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error("Falha ao comprimir a imagem"));
+          },
+          "image/jpeg",
+          quality,
+        );
+      };
+      img.onerror = () => reject(new Error("Falha ao carregar a imagem"));
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error("Falha ao ler o arquivo"));
+    reader.readAsDataURL(fileOrBlob);
+  });
+};
+
+const blobToDataURL = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
 
 export default function CameraPage() {
   return (
@@ -91,6 +148,7 @@ function CameraContent() {
   const [mode, setMode] = useState<CameraMode>(initialMode);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isProcessingSelection, setIsProcessingSelection] = useState(false);
   const [capturedPhoto, setCapturedPhoto] = useState<CapturedPhoto | null>(
     null,
   );
@@ -120,6 +178,14 @@ function CameraContent() {
   const [recentRdos, setRecentRdos] = useState<any[]>([]);
   const [isLoadingRdos, setIsLoadingRdos] = useState(false);
 
+  // --- Upload em lote (seleção de múltiplas fotos da galeria) ---
+  const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
+  const [pendingPreviews, setPendingPreviews] = useState<string[]>([]);
+  const [batchUploading, setBatchUploading] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(
+    null,
+  );
+
   useEffect(() => {
     const userAgent = navigator.userAgent.toLowerCase();
     const isMobileAgent =
@@ -130,6 +196,19 @@ function CameraContent() {
       navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
     setIsDeviceSupported(isMobileAgent || isIPadOS);
   }, []);
+
+  // Gera (e limpa) as URLs de preview das fotos selecionadas em lote
+  useEffect(() => {
+    if (!pendingFiles || pendingFiles.length === 0) {
+      setPendingPreviews([]);
+      return;
+    }
+    const urls = pendingFiles.map((file) => URL.createObjectURL(file));
+    setPendingPreviews(urls);
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [pendingFiles]);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -174,12 +253,12 @@ function CameraContent() {
 
   // useEffect simplificado para evitar race-conditions no Safari
   useEffect(() => {
-    if (isDeviceSupported && !capturedPhoto) startCamera();
+    if (isDeviceSupported && !capturedPhoto && !pendingFiles) startCamera();
     return () => {
       stopCamera();
       if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current);
     };
-  }, [startCamera, stopCamera, isDeviceSupported, capturedPhoto]);
+  }, [startCamera, stopCamera, isDeviceSupported, capturedPhoto, pendingFiles]);
 
   useEffect(() => {
     if (!isDeviceSupported) return;
@@ -297,26 +376,42 @@ function CameraContent() {
     setIsCapturing(false);
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (readerEvent) => {
-      const dataUrl = readerEvent.target?.result as string;
-      // Criamos o objeto CapturedPhoto igualzinho como se tivesse vindo da câmera
-      setCapturedPhoto({
-        id: Date.now().toString(),
-        dataUrl,
-        timestamp: new Date(),
-        hasMarkup: false,
-        category: selectedCategory,
-      });
-    };
-    reader.readAsDataURL(file);
-
-    // Permite selecionar o mesmo arquivo novamente depois
+  // Seleção de arquivo(s) da galeria.
+  // - 1 foto: segue o fluxo normal de preview/marcação/categoria/vínculo com RDO.
+  // - 2+ fotos: entra no fluxo de upload em lote (grid de preview + progresso).
+  // Em ambos os casos, a imagem é comprimida antes de virar preview, o que
+  // evita o AbortError causado por fotos gigantes vindas do iPhone.
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const fileArray = Array.from(files);
+    // Libera o input para permitir selecionar os mesmos arquivos de novo depois
     e.target.value = "";
+
+    if (fileArray.length === 1) {
+      setIsProcessingSelection(true);
+      try {
+        const compressedBlob = await compressImage(fileArray[0]);
+        const dataUrl = await blobToDataURL(compressedBlob);
+        setCapturedPhoto({
+          id: Date.now().toString(),
+          dataUrl,
+          timestamp: new Date(),
+          hasMarkup: false,
+          category: selectedCategory,
+        });
+      } catch (error) {
+        console.error("[Erro ao processar imagem]:", error);
+        alert(
+          "Não foi possível processar essa imagem. Tente selecionar outra.",
+        );
+      } finally {
+        setIsProcessingSelection(false);
+      }
+      return;
+    }
+
+    setPendingFiles(fileArray);
   };
 
   const dataURLtoBlob = (dataurl: string) => {
@@ -391,6 +486,63 @@ function CameraContent() {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  // Envia as fotos selecionadas em lote, uma de cada vez (compactadas),
+  // para não estourar limite de memória/tempo do servidor com um único
+  // FormData gigante. Se uma foto falhar, as demais continuam sendo enviadas.
+  const handleBatchUpload = async () => {
+    if (!pendingFiles || pendingFiles.length === 0 || !projectId) return;
+    setBatchUploading(true);
+    setBatchProgress({ current: 0, total: pendingFiles.length });
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < pendingFiles.length; i++) {
+      try {
+        const compressedBlob = await compressImage(pendingFiles[i]);
+        const formData = new FormData();
+        formData.append("file", compressedBlob, `photo_${Date.now()}_${i}.jpg`);
+        formData.append("projectId", projectId);
+        formData.append("category", selectedCategory);
+        if (location) {
+          formData.append("latitude", location.lat.toString());
+          formData.append("longitude", location.lng.toString());
+        }
+
+        const res = await fetch("/api/photos", {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) throw new Error(`Falha ao enviar foto ${i + 1}`);
+        successCount++;
+      } catch (error) {
+        console.error(`[Erro ao enviar foto ${i + 1}]:`, error);
+        failCount++;
+      } finally {
+        setBatchProgress({ current: i + 1, total: pendingFiles.length });
+      }
+    }
+
+    setBatchUploading(false);
+    setPendingFiles(null);
+    setBatchProgress(null);
+
+    if (failCount === 0) {
+      alert(`${successCount} foto(s) enviada(s) com sucesso!`);
+    } else {
+      alert(
+        `${successCount} foto(s) enviada(s). ${failCount} falharam - tente selecioná-las novamente.`,
+      );
+    }
+
+    startCamera();
+  };
+
+  const cancelBatchUpload = () => {
+    if (batchUploading) return;
+    setPendingFiles(null);
   };
 
   const handleOpenRdoSelection = () => {
@@ -496,7 +648,7 @@ function CameraContent() {
         </div>
       ) : (
         <div className="fixed inset-0 bg-black overflow-hidden flex flex-col">
-          {!capturedPhoto && (
+          {!capturedPhoto && !pendingFiles && (
             <div className="relative flex-1">
               <video
                 ref={videoRef}
@@ -582,13 +734,18 @@ function CameraContent() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center active:scale-95 transition-all"
+                      disabled={isProcessingSelection}
+                      className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center active:scale-95 transition-all disabled:opacity-50"
                     >
-                      <BoxIcon
-                        name={"photo-album" as any}
-                        size={20}
-                        className="text-white"
-                      />
+                      {isProcessingSelection ? (
+                        <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <BoxIcon
+                          name={"photo-album" as any}
+                          size={20}
+                          className="text-white"
+                        />
+                      )}
                     </button>
 
                     <button
@@ -619,6 +776,7 @@ function CameraContent() {
                 ref={fileInputRef}
                 onChange={handleFileSelect}
                 accept="image/*"
+                multiple
                 className="hidden"
               />
             </div>
@@ -690,6 +848,100 @@ function CameraContent() {
                     Salvar apenas na Galeria
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {pendingFiles && pendingFiles.length > 0 && (
+            <div className="absolute inset-0 bg-black flex flex-col z-20">
+              <div className="pt-[max(env(safe-area-inset-top),54px)] px-4 pb-2">
+                <h3 className="text-white font-bold text-lg">
+                  {pendingFiles.length} fotos selecionadas
+                </h3>
+                <p className="text-white/60 text-xs mt-1">
+                  Todas serão salvas com a categoria abaixo
+                </p>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-4 py-3">
+                <div className="grid grid-cols-3 gap-2">
+                  {pendingPreviews.map((url, idx) => (
+                    <div
+                      key={idx}
+                      className="aspect-square rounded-lg overflow-hidden bg-white/10"
+                    >
+                      <img
+                        src={url}
+                        alt={`Foto ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="px-4 py-4 pb-safe bg-black/90 border-t border-white/10 space-y-3">
+                {batchUploading && batchProgress && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-white text-xs">
+                      <span>Enviando fotos...</span>
+                      <span>
+                        {batchProgress.current}/{batchProgress.total}
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{
+                          width: `${(batchProgress.current / batchProgress.total) * 100}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowCategorySheet(true)}
+                    disabled={batchUploading}
+                    className="flex-1 h-12 rounded-xl bg-white/10 text-white text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <BoxIcon
+                      name={
+                        categoryOptions.find(
+                          (c) => c.value === selectedCategory,
+                        )?.icon || "images"
+                      }
+                      size={18}
+                    />
+                    {
+                      categoryOptions.find((c) => c.value === selectedCategory)
+                        ?.label
+                    }
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelBatchUpload}
+                    disabled={batchUploading}
+                    className="w-12 h-12 rounded-xl bg-white/10 text-white flex items-center justify-center disabled:opacity-50"
+                  >
+                    <BoxIcon name="x" size={20} />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleBatchUpload}
+                  disabled={batchUploading}
+                  className="w-full h-14 rounded-xl bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
+                >
+                  {batchUploading ? (
+                    <span className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>Enviar {pendingFiles.length} fotos</>
+                  )}
+                </button>
               </div>
             </div>
           )}

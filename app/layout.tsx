@@ -3,13 +3,11 @@ import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
-
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
 });
-
 export const metadata: Metadata = {
   title: "RdoApp - Gestão de Canteiro de Obras",
   description: "Sistema inteligente de RDO e gestão de canteiro de obras",
@@ -30,7 +28,6 @@ export const metadata: Metadata = {
     telephone: false,
   },
 };
-
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -39,7 +36,6 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   themeColor: "#0a0a0a",
 };
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -49,6 +45,7 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       className={`${inter.variable} dark`}
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <body className="font-sans antialiased bg-background min-h-screen">
