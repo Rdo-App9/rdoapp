@@ -339,7 +339,8 @@ export default async function RDODetailsPage({ params }: RDODetailsProps) {
                   </div>
                   <div className="px-1 text-xs text-muted-foreground print:text-black">
                     <span className="font-bold text-foreground uppercase tracking-wider print:text-black">
-                      {photo.category}
+                      {/* Se tiver descrição, mostra a descrição. Se não tiver, mostra a Categoria */}
+                      {photo.description ? photo.description : photo.category}
                     </span>
                     <p className="mt-0.5">
                       {new Date(photo.createdAt).toLocaleString("pt-BR", {

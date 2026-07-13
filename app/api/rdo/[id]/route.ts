@@ -78,6 +78,7 @@ export async function PUT(
       activities,
       observations,
       issues,
+      photos = [], // <-- ADICIONADO AQUI
     } = body;
 
     // 1. Busca o RDO para pegar o projectId (necessário para checar equipamentos)
@@ -147,6 +148,9 @@ export async function PUT(
           },
           equipmentUsage: {
             createMany: { data: equipmentUsageTransactions },
+          },
+          photos: {
+            createMany: { data: photos.map((p: any) => ({ url: p.url })) },
           },
         },
       }),

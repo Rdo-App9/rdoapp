@@ -1,3 +1,4 @@
+// aap/(app)/rdo/[number]/edit/page.tsx
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -37,6 +38,7 @@ export default async function EditRdoPage({ params }: EditRdoPageProps) {
       equipmentUsage: {
         include: { equipment: true },
       },
+      photos: true, // <-- ADICIONADO AQUI
     },
   });
 

@@ -1,3 +1,4 @@
+// app/(app)/camera/page.tsx
 "use client";
 
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
@@ -35,6 +36,15 @@ interface BatchProgress {
   total: number;
 }
 
+// Interface do nosso novo Modal
+interface ModalState {
+  isOpen: boolean;
+  type: "success" | "error" | "warning";
+  title: string;
+  message: string;
+  onConfirm?: () => void;
+}
+
 const categoryOptions: {
   value: PhotoCategory;
   label: string;
@@ -48,10 +58,6 @@ const categoryOptions: {
   { value: "general", label: "Geral", icon: "images" },
 ];
 
-// Redimensiona e recomprime a imagem antes do envio.
-// Fotos do iPhone (24MP/48MP) podem chegar a 5-10MB, o que estoura o
-// tempo/limite de payload de funções serverless (Vercel). Reduzindo a
-// largura máxima e recomprimindo em JPEG, o arquivo cai para ~200-600KB.
 const compressImage = (
   fileOrBlob: File | Blob,
   maxWidth = 1600,
@@ -120,6 +126,8 @@ function CameraContent() {
   const initialMode = (searchParams.get("mode") as CameraMode) || "photo";
 
   const [projectId, setProjectId] = useState<string | null>(null);
+  const [modal, setModal] = useState<ModalState | null>(null);
+  const closeModal = () => setModal(null);
 
   useEffect(() => {
     const urlProjectId = searchParams.get("projectId");
@@ -129,10 +137,13 @@ function CameraContent() {
     if (activeId) {
       setProjectId(activeId);
     } else {
-      alert(
-        "Nenhuma obra selecionada! Volte ao painel e selecione uma obra primeiro.",
-      );
-      router.push("/dashboard");
+      setModal({
+        isOpen: true,
+        type: "warning",
+        title: "Obra não selecionada",
+        message: "Volte ao painel e selecione uma obra primeiro.",
+        onConfirm: () => router.push("/dashboard"),
+      });
     }
   }, [searchParams, router]);
 
@@ -178,7 +189,6 @@ function CameraContent() {
   const [recentRdos, setRecentRdos] = useState<any[]>([]);
   const [isLoadingRdos, setIsLoadingRdos] = useState(false);
 
-  // --- Upload em lote (seleção de múltiplas fotos da galeria) ---
   const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
   const [pendingPreviews, setPendingPreviews] = useState<string[]>([]);
   const [batchUploading, setBatchUploading] = useState(false);
@@ -197,7 +207,6 @@ function CameraContent() {
     setIsDeviceSupported(isMobileAgent || isIPadOS);
   }, []);
 
-  // Gera (e limpa) as URLs de preview das fotos selecionadas em lote
   useEffect(() => {
     if (!pendingFiles || pendingFiles.length === 0) {
       setPendingPreviews([]);
@@ -220,7 +229,7 @@ function CameraContent() {
   const startCamera = useCallback(async () => {
     if (!isDeviceSupported) return;
     try {
-      stopCamera(); // Garante que a câmera anterior foi fechada
+      stopCamera();
 
       const constraints: MediaStreamConstraints = {
         video: {
@@ -236,7 +245,6 @@ function CameraContent() {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        // iOS Safari exige que o vídeo esteja mudo via JavaScript para permitir Autoplay sem clique
         videoRef.current.muted = true;
         videoRef.current.setAttribute("playsinline", "true");
         await videoRef.current
@@ -245,13 +253,16 @@ function CameraContent() {
       }
     } catch (error) {
       console.error("[Camera error]:", error);
-      alert(
-        "Erro ao abrir a câmera. Verifique as permissões de uso do Safari.",
-      );
+      setModal({
+        isOpen: true,
+        type: "error",
+        title: "Erro ao acessar a câmera",
+        message:
+          "Verifique as permissões de uso do navegador e tente recarregar a página.",
+      });
     }
   }, [isDeviceSupported, stopCamera]);
 
-  // useEffect simplificado para evitar race-conditions no Safari
   useEffect(() => {
     if (isDeviceSupported && !capturedPhoto && !pendingFiles) startCamera();
     return () => {
@@ -376,16 +387,10 @@ function CameraContent() {
     setIsCapturing(false);
   };
 
-  // Seleção de arquivo(s) da galeria.
-  // - 1 foto: segue o fluxo normal de preview/marcação/categoria/vínculo com RDO.
-  // - 2+ fotos: entra no fluxo de upload em lote (grid de preview + progresso).
-  // Em ambos os casos, a imagem é comprimida antes de virar preview, o que
-  // evita o AbortError causado por fotos gigantes vindas do iPhone.
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     const fileArray = Array.from(files);
-    // Libera o input para permitir selecionar os mesmos arquivos de novo depois
     e.target.value = "";
 
     if (fileArray.length === 1) {
@@ -402,9 +407,13 @@ function CameraContent() {
         });
       } catch (error) {
         console.error("[Erro ao processar imagem]:", error);
-        alert(
-          "Não foi possível processar essa imagem. Tente selecionar outra.",
-        );
+        setModal({
+          isOpen: true,
+          type: "error",
+          title: "Erro na Imagem",
+          message:
+            "Não foi possível processar essa imagem. Tente selecionar outra.",
+        });
       } finally {
         setIsProcessingSelection(false);
       }
@@ -456,6 +465,8 @@ function CameraContent() {
       formData.append("file", file);
       formData.append("projectId", projectId);
       formData.append("category", capturedPhoto.category);
+      if (capturedPhoto.description)
+        formData.append("description", capturedPhoto.description);
       if (capturedPhoto.latitude)
         formData.append("latitude", capturedPhoto.latitude.toString());
       if (capturedPhoto.longitude)
@@ -469,28 +480,33 @@ function CameraContent() {
 
       if (!res.ok) throw new Error("Erro ao salvar a foto");
 
-      alert(
-        rdoId
-          ? "Foto vinculada ao RDO com sucesso!"
-          : "Foto salva na Galeria da Obra!",
-      );
-
-      setShowRdoSheet(false);
-      setCapturedPhoto(null);
-      startCamera();
+      // Modal de Sucesso (a câmera só reinicia ao clicar em OK)
+      setModal({
+        isOpen: true,
+        type: "success",
+        title: rdoId ? "Vinculada ao RDO!" : "Salva na Galeria!",
+        message: "A foto foi registrada com sucesso na obra.",
+        onConfirm: () => {
+          setShowRdoSheet(false);
+          setCapturedPhoto(null);
+          startCamera();
+          closeModal();
+        },
+      });
     } catch (error) {
-      alert(
-        "Erro ao enviar a imagem. Verifique sua conexão e tente novamente.",
-      );
+      setModal({
+        isOpen: true,
+        type: "error",
+        title: "Falha no Envio",
+        message:
+          "Não foi possível enviar a imagem. Verifique sua conexão e tente novamente.",
+      });
       console.error(error);
     } finally {
       setIsUploading(false);
     }
   };
 
-  // Envia as fotos selecionadas em lote, uma de cada vez (compactadas),
-  // para não estourar limite de memória/tempo do servidor com um único
-  // FormData gigante. Se uma foto falhar, as demais continuam sendo enviadas.
   const handleBatchUpload = async () => {
     if (!pendingFiles || pendingFiles.length === 0 || !projectId) return;
     setBatchUploading(true);
@@ -529,15 +545,30 @@ function CameraContent() {
     setPendingFiles(null);
     setBatchProgress(null);
 
+    // Modal de Resultado do Lote
     if (failCount === 0) {
-      alert(`${successCount} foto(s) enviada(s) com sucesso!`);
+      setModal({
+        isOpen: true,
+        type: "success",
+        title: "Envio Concluído",
+        message: `${successCount} foto(s) enviada(s) com sucesso!`,
+        onConfirm: () => {
+          startCamera();
+          closeModal();
+        },
+      });
     } else {
-      alert(
-        `${successCount} foto(s) enviada(s). ${failCount} falharam - tente selecioná-las novamente.`,
-      );
+      setModal({
+        isOpen: true,
+        type: "warning",
+        title: "Envio Parcial",
+        message: `${successCount} foto(s) enviada(s). ${failCount} falharam - tente novamente.`,
+        onConfirm: () => {
+          startCamera();
+          closeModal();
+        },
+      });
     }
-
-    startCamera();
   };
 
   const cancelBatchUpload = () => {
@@ -621,8 +652,75 @@ function CameraContent() {
     setShowMarkup(false);
   };
 
+  // Configuração de estilo do Modal baseado no tipo
+  const modalConfig = {
+    success: {
+      bg: "bg-emerald-500/20",
+      border: "border-emerald-500/30",
+      text: "text-emerald-400",
+      btn: "bg-emerald-600 hover:bg-emerald-700 text-white",
+      icon: "check-circle" as any,
+    },
+    error: {
+      bg: "bg-red-500/20",
+      border: "border-red-500/30",
+      text: "text-red-400",
+      btn: "bg-red-600 hover:bg-red-700 text-white",
+      icon: "x-circle" as any,
+    },
+    warning: {
+      bg: "bg-amber-500/20",
+      border: "border-amber-500/30",
+      text: "text-amber-400",
+      btn: "bg-amber-600 hover:bg-amber-700 text-white",
+      icon: "error-circle" as any,
+    },
+  };
+
   return (
     <BoxiconsProvider>
+      {modal?.isOpen && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            className={cn(
+              "w-full max-w-sm rounded-2xl border p-6 shadow-2xl flex flex-col items-center text-center gap-4 animate-in zoom-in-95 duration-200",
+              modalConfig[modal.type].bg,
+              modalConfig[modal.type].border,
+            )}
+          >
+            <div
+              className={cn(
+                "w-16 h-16 rounded-full flex items-center justify-center bg-background/50",
+                modalConfig[modal.type].text,
+              )}
+            >
+              <BoxIcon
+                name={modalConfig[modal.type].icon}
+                size={36}
+                className={modalConfig[modal.type].text}
+              />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-foreground">
+                {modal.title}
+              </h3>
+              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                {modal.message}
+              </p>
+            </div>
+            <button
+              onClick={modal.onConfirm || closeModal}
+              className={cn(
+                "w-full h-12 rounded-xl font-semibold text-sm transition-all active:scale-95",
+                modalConfig[modal.type].btn,
+              )}
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
       {isDeviceSupported === null ? (
         <div className="fixed inset-0 bg-black flex items-center justify-center text-white">
           Iniciando câmera...
@@ -658,7 +756,6 @@ function CameraContent() {
                 muted
               />
 
-              {/* FIX IPHONE 15: O pt-[max(env(safe-area-inset-top),54px)] garante que desça a Dynamic Island inteira */}
               <div className="absolute top-0 left-0 right-0 pt-[max(env(safe-area-inset-top),54px)] px-4 pb-4 bg-linear-to-b from-black/80 to-transparent z-10">
                 <div className="flex items-center justify-between">
                   <button
@@ -823,7 +920,21 @@ function CameraContent() {
                   </button>
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-3">
+                  <input
+                    type="text"
+                    placeholder="Nome da foto (Ex: Portão da varanda)..."
+                    value={capturedPhoto.description || ""}
+                    onChange={(e) =>
+                      setCapturedPhoto({
+                        ...capturedPhoto,
+                        description: e.target.value,
+                      })
+                    }
+                    disabled={isUploading}
+                    className="w-full bg-white/10 border border-white/20 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary placeholder:text-white/40 transition-all"
+                  />
+
                   <button
                     type="button"
                     onClick={handleOpenRdoSelection}

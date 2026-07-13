@@ -144,6 +144,9 @@ export default function EditRdoClient({ rdo }: EditRdoClientProps) {
     rdo.authorSignature || null,
   );
 
+  // <-- A: ESTADO DAS FOTOS ADICIONADO AQUI
+  const [photos, setPhotos] = useState<any[]>(rdo.photos || []);
+
   useEffect(() => {
     const savedWorkforce = localStorage.getItem("@rdo:customWorkforce");
     if (savedWorkforce) {
@@ -165,12 +168,14 @@ export default function EditRdoClient({ rdo }: EditRdoClientProps) {
     }
   }, []);
 
+  // <-- B: ETAPA "FOTOS" ADICIONADA AQUI
   const steps = [
     { title: "Identificação" },
     { title: "Clima" },
     { title: "Mão de Obra" },
     { title: "Equipamentos" },
     { title: "Atividades" },
+    { title: "Fotos" },
     { title: "Assinatura" },
   ];
 
@@ -271,6 +276,7 @@ export default function EditRdoClient({ rdo }: EditRdoClientProps) {
         activities,
         observations,
         issues,
+        photos, // <-- C: FOTOS ADICIONADAS NO PAYLOAD
       };
 
       // Dispara o PUT para a rota do RDO que estamos editando
@@ -309,6 +315,8 @@ export default function EditRdoClient({ rdo }: EditRdoClientProps) {
       case 4:
         return activities.trim().length > 0;
       case 5:
+        return true; // Etapa de Fotos (renomear é opcional)
+      case 6:
         return signature !== null;
       default:
         return true;
@@ -420,7 +428,53 @@ export default function EditRdoClient({ rdo }: EditRdoClientProps) {
               setIssues={setIssues}
             />
           )}
+
+          {/* <-- D: NOVA ETAPA 5 (FOTOS) ADICIONADA AQUI */}
           {currentStep === 5 && (
+            <div className="space-y-6">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                Renomear Fotos
+              </h2>
+              {photos.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground bg-secondary/20 rounded-xl border border-dashed border-border">
+                  Nenhuma foto vinculada a este RDO.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  {photos.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="flex flex-col gap-2 p-2 border border-border rounded-xl bg-card"
+                    >
+                      <img
+                        src={photo.url}
+                        alt="Foto"
+                        className="w-full aspect-square object-cover rounded-lg border border-border"
+                      />
+                      <input
+                        type="text"
+                        value={photo.description || ""}
+                        onChange={(e) =>
+                          setPhotos((prev) =>
+                            prev.map((p) =>
+                              p.id === photo.id
+                                ? { ...p, description: e.target.value }
+                                : p,
+                            ),
+                          )
+                        }
+                        placeholder={photo.category}
+                        className="w-full h-10 px-3 rounded-md bg-secondary/30 border border-transparent focus:border-primary text-sm focus:outline-none transition-all"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* <-- D: ASSINATURA AGORA É A ETAPA 6 */}
+          {currentStep === 6 && (
             <StepSignature
               weather={weather}
               temperature={temperature}
