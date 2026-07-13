@@ -312,7 +312,6 @@ model Photo {
   thumbnailUrl   String?
   mimeType       String        @default("image/jpeg")
   size           Int           // Em bytes
-  description String?
   
   // Metadados automáticos
   latitude       Float?
